@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-25T05:19:45.445047",
+  "generatedAt": "2026-02-25T05:31:57.841129",
   "cycle": {
     "weekInMacro": 1,
     "weekType": 1,
@@ -35,8 +35,208 @@
       }
     ]
   },
-  "lastWorkout": null,
-  "workouts": [],
+  "lastWorkout": {
+    "ejercicio": "Encogimiento de Hombros (Barra)",
+    "fecha": "2026-02-23T00:00:00",
+    "diaBbb": "Sin d\u00eda",
+    "semana": 0,
+    "pesoTop": 0.0,
+    "reps": "10,25,16",
+    "volumen": 0.0,
+    "hevyId": "ed8dbbed-0bb1-40e6-9f8a-d00a7b88e752"
+  },
+  "workouts": [
+    {
+      "ejercicio": "Encogimiento de Hombros (Barra)",
+      "fecha": "2026-02-23T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "10,25,16",
+      "volumen": 0.0,
+      "hevyId": "ed8dbbed-0bb1-40e6-9f8a-d00a7b88e752"
+    },
+    {
+      "ejercicio": "Dominada",
+      "fecha": "2026-02-23T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "32",
+      "volumen": 0.0,
+      "hevyId": "ed8dbbed-0bb1-40e6-9f8a-d00a7b88e752"
+    },
+    {
+      "ejercicio": "Press de Banca - Agarre Abierto (Barra) (531)",
+      "fecha": "2026-02-23T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 1,
+      "pesoTop": 0.0,
+      "reps": "50\u00d75,56\u00d75,64\u00d716",
+      "volumen": 0.0,
+      "hevyId": "ed8dbbed-0bb1-40e6-9f8a-d00a7b88e752"
+    },
+    {
+      "ejercicio": "Tir\u00f3n a la Cara",
+      "fecha": "2026-02-23T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "20,20,20,20,20",
+      "volumen": 0.0,
+      "hevyId": "ed8dbbed-0bb1-40e6-9f8a-d00a7b88e752"
+    },
+    {
+      "ejercicio": "Press de Banca - Agarre Abierto (Barra) (BBB)",
+      "fecha": "2026-02-23T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "10,10,10,10",
+      "volumen": 0.0,
+      "hevyId": "ed8dbbed-0bb1-40e6-9f8a-d00a7b88e752"
+    },
+    {
+      "ejercicio": "Press Franc\u00e9s (Barra)",
+      "fecha": "2026-02-23T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "10,10,5",
+      "volumen": 0.0,
+      "hevyId": "ed8dbbed-0bb1-40e6-9f8a-d00a7b88e752"
+    },
+    {
+      "ejercicio": "Jal\u00f3n al Pecho (Cable)",
+      "fecha": "2026-02-23T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "12,10",
+      "volumen": 0.0,
+      "hevyId": "ed8dbbed-0bb1-40e6-9f8a-d00a7b88e752"
+    },
+    {
+      "ejercicio": "Peso Muerto (Barra) (BBB)",
+      "fecha": "2026-02-21T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "10,10,10,10,10",
+      "volumen": 0.0,
+      "hevyId": "864e5e48-2e8f-491a-b7a8-a2b79797cf74"
+    },
+    {
+      "ejercicio": "Peso Muerto (Barra) (531)",
+      "fecha": "2026-02-21T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 1,
+      "pesoTop": 0.0,
+      "reps": "92\u00d75,104\u00d75,120\u00d79",
+      "volumen": 0.0,
+      "hevyId": "864e5e48-2e8f-491a-b7a8-a2b79797cf74"
+    },
+    {
+      "ejercicio": "Fondos",
+      "fecha": "2026-02-21T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "33",
+      "volumen": 0.0,
+      "hevyId": "864e5e48-2e8f-491a-b7a8-a2b79797cf74"
+    },
+    {
+      "ejercicio": "Remo con Mancuerna",
+      "fecha": "2026-02-21T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "16,9,10",
+      "volumen": 0.0,
+      "hevyId": "864e5e48-2e8f-491a-b7a8-a2b79797cf74"
+    },
+    {
+      "ejercicio": "Abdominal Corto con Cable",
+      "fecha": "2026-02-21T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "10,10,10",
+      "volumen": 0.0,
+      "hevyId": "864e5e48-2e8f-491a-b7a8-a2b79797cf74"
+    },
+    {
+      "ejercicio": "Curl de B\u00edceps (Barra)",
+      "fecha": "2026-02-21T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "10,10,10",
+      "volumen": 0.0,
+      "hevyId": "864e5e48-2e8f-491a-b7a8-a2b79797cf74"
+    },
+    {
+      "ejercicio": "Press Militar de Pie (BBB)",
+      "fecha": "2026-02-20T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 1,
+      "pesoTop": 0.0,
+      "reps": "",
+      "volumen": 0.0,
+      "hevyId": ""
+    },
+    {
+      "ejercicio": "Encogimiento de Hombros (Barra)",
+      "fecha": "2026-02-20T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "10,21",
+      "volumen": 0.0,
+      "hevyId": "edf3607a-8a50-470c-ae79-7d1b739d8c5d"
+    },
+    {
+      "ejercicio": "Abdominal Corto con Cable",
+      "fecha": "2026-02-20T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "10,10,10",
+      "volumen": 0.0,
+      "hevyId": "edf3607a-8a50-470c-ae79-7d1b739d8c5d"
+    },
+    {
+      "ejercicio": "Press Franc\u00e9s (Barra)",
+      "fecha": "2026-02-20T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "8,8,6,6,5",
+      "volumen": 0.0,
+      "hevyId": "edf3607a-8a50-470c-ae79-7d1b739d8c5d"
+    },
+    {
+      "ejercicio": "Press Militar de Pie (531)",
+      "fecha": "2026-02-20T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 1,
+      "pesoTop": 0.0,
+      "reps": "38\u00d75, 44\u00d75, 50\u00d77",
+      "volumen": 0.0,
+      "hevyId": "edf3607a-8a50-470c-ae79-7d1b739d8c5d"
+    },
+    {
+      "ejercicio": "Press Militar de Pie (BBB)",
+      "fecha": "2026-02-20T00:00:00",
+      "diaBbb": "Sin d\u00eda",
+      "semana": 0,
+      "pesoTop": 0.0,
+      "reps": "10,10,10,10,22",
+      "volumen": 0.0,
+      "hevyId": "edf3607a-8a50-470c-ae79-7d1b739d8c5d"
+    }
+  ],
   "upcoming": [
     {
       "date": "2026-02-25",
@@ -144,7 +344,7 @@
   ],
   "stats": {
     "totalSessions": 0,
-    "totalVolume": 0,
+    "totalVolume": 0.0,
     "currentStreak": 0
   }
 }
