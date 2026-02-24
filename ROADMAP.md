@@ -17,18 +17,16 @@
 
 ---
 
-## Fase 2: Integración Notion (Día 2)
+## Fase 2: Integración Notion ✅ COMPLETADA
 **Objetivo:** Leer datos de entrenos y crear contexto enriquecido
 
-- [ ] Reusar código de `bbd-analytics/src/notion_client.py`
-- [ ] Crear módulo `forzudo.notion` con lectura de:
-  - Último entreno (fecha, ejercicios, pesos)
-  - Estado del ciclo 5/3/1 (semana, TM actual)
-  - Próximo entreno programado
-- [ ] Implementar `ContextEngine` que enriquezca avisos con datos reales
-- [ ] Test: "Hoy toca Bench, semana 3 del ciclo 2, TM actual 76kg"
+- [x] Crear módulo `forzudo.notion` con bases de datos **independientes** de BBD
+- [x] Crear DBs propias: Recordatorios + Entrenos
+- [x] Implementar `ContextEngine` con cálculos 5/3/1 propios
+- [x] Comando `setup` para crear estructura en Notion
+- [x] Comando `sync` para recibir datos de BBD (sin tocarlo)
 
-**Entregable:** Consulta a Notion que devuelva estado completo del entrenamiento
+**Entregable:** Sistema con bases de datos propias en Notion ✅
 
 ---
 
@@ -120,4 +118,4 @@
 ---
 
 *Creado: 2025-02-25*
-*Fase actual: 1 (Fundación)* ✅
+*Fase actual: 3 (Cron Jobs)*
