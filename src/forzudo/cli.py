@@ -41,6 +41,11 @@ def main() -> int:
     sync_parser.add_argument("--data", required=True, help="JSON con datos del entreno")
     sync_parser.add_argument("--workouts-db", help="ID de base de datos de entrenos")
     
+    # Comando: bot
+    bot_parser = subparsers.add_parser("bot", help="Probar bot de Telegram")
+    bot_parser.add_argument("message", help="Mensaje a procesar")
+    bot_parser.add_argument("--user", default="juan", help="ID de usuario")
+    
     # Comando: dashboard
     dash_parser = subparsers.add_parser("dashboard", help="Generar datos para dashboard")
     dash_parser.add_argument("--output", default="docs/data.json", help="Ruta de salida")
@@ -79,6 +84,12 @@ def main() -> int:
     
     if args.command == "cron":
         return cmd_cron(args, cron_parser)
+    
+    if args.command == "bot":
+        from forzudo.telegram_bot import process_telegram_message
+        response = process_telegram_message(args.message, args.user)
+        print(response)
+        return 0
     
     parser.print_help()
     return 1

@@ -13,32 +13,28 @@ Un sistema que entiende recordatorios en lenguaje natural y los enriquece con co
 - **Notion Integration**: Almacena recordatorios y entrenos en bases de datos propias
 - **Scheduler**: Cron jobs que verifican condiciones
 - **Dashboard**: Vista unificada HTML (GitHub Pages o local)
-- **Telegram Bot**: Interacción rápida (próximamente)
+- **Telegram Bot**: Interacción rápida por mensajes
 
 ## Setup Inicial
 
 ### 1. Crear bases de datos en Notion
 
 ```bash
-# Necesitas el ID de una página en Notion donde crear las bases de datos
-# La URL tiene formato: https://notion.so/workspace/[PAGE_ID]
-
 export NOTION_TOKEN="tu-token-de-notion"
 uv run forzudo setup --parent-page "ID_DE_TU_PAGINA"
 ```
-
-Esto crea:
-- 🦍 **ForzudoOS - Recordatorios**: Base de datos de recordatorios
-- 🦍 **ForzudoOS - Entrenos**: Base de datos de entrenos (sincronizada desde BBD)
 
 ### 2. Configurar variables de entorno
 
 ```bash
 # .env
 NOTION_TOKEN="secret_xxx"
-FORZUDO_PARENT_PAGE="xxx"        # Página padre (opcional tras setup)
-FORZUDO_REMINDERS_DB="xxx"       # ID de la base de recordatorios
-FORZUDO_WORKOUTS_DB="xxx"        # ID de la base de entrenos
+FORZUDO_REMINDERS_DB="xxx"
+FORZUDO_WORKOUTS_DB="xxx"
+
+# Opcional: para notificaciones por Telegram
+TELEGRAM_BOT_TOKEN="xxx"
+TELEGRAM_CHAT_ID_JUAN="xxx"
 ```
 
 ## Uso
@@ -46,34 +42,47 @@ FORZUDO_WORKOUTS_DB="xxx"        # ID de la base de entrenos
 ### CLI
 
 ```bash
-# Ver estado actual (usa datos de Notion si están configurados)
+# Ver estado actual
 uv run forzudo status
 
-# Parsear una frase (sin crear recordatorio)
+# Parsear frase
 uv run forzudo parse "avísame si no he entrenado en 48h"
 
-# Crear un recordatorio
+# Crear recordatorio
 uv run forzudo recordar "avísame del deload 3 días antes"
 
-# Ejecutar checks de recordatorios
+# Ejecutar checks
 uv run forzudo check
 
-# Sincronizar entreno desde BBD Analytics
-uv run forzudo sync --data '{"exercise":"Bench","date":"2026-02-25",...}'
-
-# Generar datos para dashboard
+# Generar dashboard
 uv run forzudo dashboard
 
-# Gestión de cron jobs
-uv run forzudo cron list
-uv run forzudo cron export
+# Probar bot
+uv run forzudo bot "/hoy"
+uv run forzudo bot "qué toca hoy"
 ```
 
+### Telegram Bot
+
+El bot responde a comandos y lenguaje natural:
+
+| Comando | Descripción |
+|---------|-------------|
+| `/hoy` | Qué toca entrenar hoy |
+| `/estado` | Resumen del ciclo 5/3/1 |
+| `/hecho` | Marcar entreno completado |
+| `/manana` | Mover entreno a mañana |
+| `/recordar [frase]` | Crear recordatorio |
+| `/alertas` | Ver alertas activas |
+| `/pesos` | Ver pesos esperados |
+| `/ayuda` | Mostrar ayuda |
+
+**Lenguaje natural también funciona:**
+- "avísame si no entreno en 48h"
+- "qué toca hoy"
+- "cuándo es el deload"
+
 ### Dashboard
-
-El dashboard es una aplicación HTML/JS estática que puede funcionar de dos formas:
-
-#### Opción 1: Local (recomendado para repos privados)
 
 ```bash
 # Generar datos
@@ -82,18 +91,8 @@ uv run forzudo dashboard
 # Servir localmente
 python -m http.server 8080 --directory docs/
 
-# Abrir en navegador
-open http://localhost:8080
+# Abrir http://localhost:8080
 ```
-
-#### Opción 2: GitHub Pages (requiere repo público o plan Pro)
-
-Si tu repo es público, GitHub Pages funciona gratis. Si es privado, necesitas GitHub Pro.
-
-Para habilitar:
-1. Settings → Pages → Source → Deploy from branch
-2. Selecciona `main` y carpeta `/docs`
-3. Guarda
 
 ## Arquitectura
 
@@ -104,30 +103,48 @@ Para habilitar:
 └─────────────┘     └──────┬──────┘     └─────────────┘
                            │
                            ▼
-                  ┌─────────────────┐
-                  │  Context Engine │
-                  │   (5/3/1 calc)  │
-                  └────────┬────────┘
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-      ┌──────────┐  ┌──────────┐  ┌──────────┐
-      │  Notion  │  │ Dashboard│  │ Telegram │
-      │  (store) │  │  (HTML)  │  │   (bot)  │
-      └──────────┘  └──────────┘  └──────────┘
+        ┌──────────────────┼──────────────────┐
+        ▼                  ▼                  ▼
+   ┌─────────┐      ┌──────────┐      ┌──────────┐
+   │  Notion │      │Telegram  │      │ Dashboard│
+   │  (store)│      │   Bot    │      │  (HTML)  │
+   └─────────┘      └──────────┘      └──────────┘
 ```
 
-**Nota importante**: ForzudoOS **nunca modifica** BBD Analytics. Solo lee datos o recibe sincronizaciones manuales.
-
 ## Cron Jobs Activos
-
-ForzudoOS registra automáticamente 3 cron jobs en OpenClaw:
 
 | Job | Frecuencia | Descripción |
 |-----|------------|-------------|
 | Check Workouts | Cada 6h | Verifica recordatorios pendientes |
 | Daily Summary | 7:00 AM | Envía resumen diario |
 | Deload Warning | Cada 24h | Avisa cuando se acerca el deload |
+
+## Comandos del Bot - Ejemplos
+
+```bash
+# Ver qué toca hoy
+$ uv run forzudo bot "/hoy"
+💪 *Día 1 - OHP*
+_Press + Hombros_
+📊 Semana 5s (Macro 1)
+*Sets:*
+  1. `38kg` × 5
+  2. `44kg` × 5
+  3. `50kg` × 5+
+
+# Estado del ciclo
+$ uv run forzudo bot "/estado"
+📊 *Estado del Ciclo*
+*Macro:* 1
+*Semana:* Semana 5s
+*Posición:* 1/7
+⏰ Deload en 6 días
+
+# Lenguaje natural
+$ uv run forzudo bot "avísame si no entreno en 48h"
+📝 Detecté un recordatorio...
+Para crearlo, usa: `/recordar avísame si no entreno en 48h`
+```
 
 ## Desarrollo
 
@@ -141,31 +158,25 @@ uv run ruff format .
 
 # Type check
 uv run ty check src/
-
-# Generar datos para dashboard
-uv run forzudo dashboard
 ```
 
 ## Roadmap
 
 - [x] Parser NL básico
 - [x] Cálculos 5/3/1 independientes
-- [x] Integración Notion (bases de datos propias)
+- [x] Integración Notion
 - [x] Scheduler con cron jobs
 - [x] Dashboard HTML estático
-- [ ] Telegram Bot
+- [x] Telegram Bot
 - [ ] Sincronización automática desde BBD
 
 ## Stack
 
 - Python 3.11+
-- uv (gestión de dependencias)
-- ruff (lint/format)
-- ty (type checking)
-- pytest (testing)
+- uv, ruff, ty, pytest
 - Notion API
 - OpenClaw Cron
-- HTML/CSS/JS vanilla (dashboard)
+- HTML/CSS/JS vanilla
 
 ---
 
