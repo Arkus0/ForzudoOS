@@ -30,18 +30,19 @@
 
 ---
 
-## Fase 3: Sistema de Cron Jobs (Día 3)
+## Fase 3: Sistema de Cron Jobs ✅ COMPLETADA
 **Objetivo:** Recordatorios programados que se ejecuten solos
 
-- [ ] Diseñar schema de cron jobs (qué guardar, cómo activar)
-- [ ] Implementar `forzudo.scheduler` con OpenClaw cron
-- [ ] Crear jobs iniciales:
-  - Check entreno cada 6h (alerta si >48h sin entrenar)
-  - Aviso deload 3 días antes
-  - Recordatorio día de entreno (mañana)
-- [ ] Sistema de "snooze" y "completado"
+- [x] Diseñar schema de cron jobs
+- [x] Implementar `cron_manager.py` con integración OpenClaw
+- [x] Crear 3 jobs iniciales:
+  - **Check Workouts**: cada 6h verifica si hay recordatorios pendientes
+  - **Daily Summary**: cada día a las 7am (Europe/Madrid)
+  - **Deload Warning**: cada día verifica proximidad de deload
+- [x] Comandos CLI: `cron list`, `cron export`, `cron register`
+- [x] Jobs registrados y activos en OpenClaw Cron
 
-**Entregable:** Primer cron job activo que me avise por Telegram
+**Entregable:** 3 cron jobs activos que ejecutan checks automáticos ✅
 
 ---
 
@@ -118,4 +119,4 @@
 ---
 
 *Creado: 2025-02-25*
-*Fase actual: 3 (Cron Jobs)*
+*Fase actual: 4 (Dashboard)*
