@@ -1,4 +1,4 @@
-"""Scheduler - Gestión de recordatorios programados."""
+"""Scheduler - Gestión de recordatorios programados con Notion backend."""
 
 from __future__ import annotations
 
@@ -14,21 +14,22 @@ from forzudo.parser import ReminderIntent
 
 class JobStatus(Enum):
     """Estado de un job."""
-    ACTIVE = "active"
-    PAUSED = "paused"
-    TRIGGERED = "triggered"
-    COMPLETED = "completed"
+    ACTIVE = "activo"
+    PAUSED = "pausado"
+    TRIGGERED = "disparado"
+    COMPLETED = "completado"
 
 
 @dataclass
 class ReminderJob:
-    """Un job de recordatorio programado."""
+    """Un job de recordatorio."""
     
     id: str
     user_id: str
     intent: ReminderIntent
     status: JobStatus
     created_at: str
+    notion_page_id: str | None = None
     last_checked: str | None = None
     trigger_count: int = 0
     
@@ -46,6 +47,7 @@ class ReminderJob:
             },
             "status": self.status.value,
             "created_at": self.created_at,
+            "notion_page_id": self.notion_page_id,
             "last_checked": self.last_checked,
             "trigger_count": self.trigger_count,
         }
@@ -70,13 +72,14 @@ class ReminderJob:
             intent=intent,
             status=JobStatus(data["status"]),
             created_at=data["created_at"],
+            notion_page_id=data.get("notion_page_id"),
             last_checked=data.get("last_checked"),
             trigger_count=data.get("trigger_count", 0),
         )
 
 
 class JobStore:
-    """Almacenamiento de jobs."""
+    """Almacenamiento local de jobs (fallback si Notion no está disponible)."""
     
     def __init__(self, data_dir: str | None = None) -> None:
         self.data_dir = Path(data_dir or os.environ.get("FORZUDO_DATA", "/tmp/forzudo"))
@@ -127,11 +130,89 @@ class JobStore:
             self._save_all(jobs)
 
 
+class NotionJobStore:
+    """Almacenamiento de jobs en Notion."""
+    
+    def __init__(self, database_id: str | None = None) -> None:
+        self.database_id = database_id or os.environ.get("FORZUDO_REMINDERS_DB", "")
+    
+    def save(self, job: ReminderJob) -> None:
+        """Guarda un job en Notion."""
+        if not self.database_id:
+            raise ValueError("FORZUDO_REMINDERS_DB no configurado")
+        
+        from forzudo.notion import create_reminder
+        
+        notion_id = create_reminder(
+            database_id=self.database_id,
+            nombre=job.intent.raw_text[:50],  # Truncar para título
+            tipo=job.intent.trigger_type.name.lower(),
+            condicion=job.intent.to_cron_job(),
+            user_id=job.user_id,
+        )
+        job.notion_page_id = notion_id
+    
+    def get_all_active(self) -> list[ReminderJob]:
+        """Obtiene todos los jobs activos desde Notion."""
+        if not self.database_id:
+            return []
+        
+        from forzudo.notion import query_reminders
+        
+        entries = query_reminders(self.database_id, estado="activo")
+        
+        jobs = []
+        for e in entries:
+            # Convertir ReminderEntry a ReminderJob
+            intent = ReminderIntent(
+                raw_text=e.nombre,
+                trigger_type=self._str_to_trigger(e.tipo),
+                trigger_data=e.condicion,
+                action_type=ReminderIntent.parse(e.nombre).action_type,
+                action_data={},
+                context_needed=[],
+            )
+            
+            jobs.append(ReminderJob(
+                id=e.id[:8],  # Usar parte del ID de Notion
+                user_id=e.user_id,
+                intent=intent,
+                status=JobStatus(e.estado),
+                created_at=e.ultimo_check.isoformat() if e.ultimo_check else "",
+                notion_page_id=e.id,
+                last_checked=e.ultimo_check.isoformat() if e.ultimo_check else None,
+                trigger_count=e.contador,
+            ))
+        
+        return jobs
+    
+    def _str_to_trigger(self, tipo: str) -> Any:
+        """Convierte string de tipo a TriggerType."""
+        from forzudo.parser import TriggerType
+        
+        mapping = {
+            "condicional": TriggerType.CONDITIONAL,
+            "temporal": TriggerType.TIME_BASED,
+            "recurrente": TriggerType.RECURRING,
+            "evento": TriggerType.EVENT_BASED,
+        }
+        return mapping.get(tipo, TriggerType.TIME_BASED)
+
+
 class Scheduler:
     """Orquestador de recordatorios."""
     
-    def __init__(self, store: JobStore | None = None) -> None:
-        self.store = store or JobStore()
+    def __init__(
+        self,
+        local_store: JobStore | None = None,
+        notion_store: NotionJobStore | None = None,
+    ) -> None:
+        self.local = local_store or JobStore()
+        self.notion = notion_store
+        
+        # Intentar usar Notion si está configurado
+        if notion_store is None and os.environ.get("FORZUDO_REMINDERS_DB"):
+            self.notion = NotionJobStore()
     
     def create_job(self, user_id: str, intent: ReminderIntent) -> ReminderJob:
         """Crea un nuevo job desde una intención parseada."""
@@ -146,33 +227,54 @@ class Scheduler:
             created_at=datetime.now().isoformat(),
         )
         
-        self.store.save(job)
+        # Guardar localmente siempre
+        self.local.save(job)
+        
+        # Intentar guardar en Notion también
+        if self.notion:
+            try:
+                self.notion.save(job)
+            except Exception as e:
+                print(f"⚠️ No se pudo guardar en Notion: {e}")
+        
         return job
     
     def check_job(self, job: ReminderJob) -> dict | None:
         """Evalúa si un job debe dispararse."""
         from datetime import datetime
         from forzudo.context import build_context
+        from forzudo.notion import WorkoutEntry
         
-        # Actualizar timestamp de check
         job.last_checked = datetime.now().isoformat()
         
         intent = job.intent
-        ctx = build_context()
         
-        # Evaluar según tipo de trigger
+        # Para jobs condicionales, necesitamos datos de entrenamiento
         if intent.trigger_type.name == "CONDITIONAL":
             condition = intent.trigger_data.get("condition")
             
             if condition == "no_training":
                 threshold = intent.trigger_data.get("hours", 48)
                 
+                # Intentar obtener último entreno
+                last_workout = None
+                try:
+                    from forzudo.notion import get_last_workout
+                    workouts_db = os.environ.get("FORZUDO_WORKOUTS_DB")
+                    if workouts_db:
+                        last_workout = get_last_workout(workouts_db)
+                except Exception:
+                    pass
+                
+                # Si no hay datos, usar contexto estimado
+                ctx = build_context(last_workout)
+                
                 if ctx.hours_since_last is None:
-                    return None  # No hay datos
+                    return None
                 
                 if ctx.hours_since_last > threshold:
                     job.trigger_count += 1
-                    self.store.save(job)
+                    self.local.save(job)
                     
                     return {
                         "triggered": True,
@@ -187,6 +289,8 @@ class Scheduler:
             if event == "deload":
                 days_before = intent.trigger_data.get("days_before", 3)
                 
+                ctx = build_context()
+                
                 if ctx.days_until_deload is not None and ctx.days_until_deload <= days_before:
                     return {
                         "triggered": True,
@@ -195,19 +299,30 @@ class Scheduler:
                         "message": self._build_message(intent, ctx),
                     }
         
-        self.store.save(job)
+        self.local.save(job)
         return None
     
     def _build_message(self, intent: ReminderIntent, ctx: Any) -> str:
         """Construye el mensaje final con contexto."""
-        from forzudo.context import format_reminder_with_context
-        return format_reminder_with_context(intent.raw_text, ctx)
+        from forzudo.context import format_context_message
+        return format_context_message(ctx)
     
     def run_checks(self) -> list[dict]:
         """Ejecuta checks de todos los jobs activos."""
         triggered = []
         
-        for job in self.store.get_all_active():
+        # Obtener jobs de Notion si está disponible, si no, de local
+        jobs = []
+        if self.notion:
+            try:
+                jobs = self.notion.get_all_active()
+            except Exception:
+                pass
+        
+        if not jobs:
+            jobs = self.local.get_all_active()
+        
+        for job in jobs:
             result = self.check_job(job)
             if result and result.get("triggered"):
                 triggered.append({

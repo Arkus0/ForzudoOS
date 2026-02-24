@@ -53,7 +53,7 @@ class ReminderIntent:
         # Detectar condición: "si no entreno en X horas/días"
         if match := re.search(patterns["no_training"], text_lower):
             amount = int(match.group(1))
-            unit = match.group(2) if match.group(2) else "h"  # default a horas si no se especifica
+            unit = match.group(2) if match.group(2) else "h"
             hours = amount if unit == "h" else amount * 24
             return cls(
                 raw_text=text,
@@ -61,7 +61,7 @@ class ReminderIntent:
                 trigger_data={
                     "condition": "no_training",
                     "hours": hours,
-                    "check_interval": min(hours // 4, 6),  # check cada 6h máximo
+                    "check_interval": min(hours // 4, 6),
                 },
                 action_type=ActionType.REMIND,
                 action_data={"message": f"Llevas más de {amount}{unit} sin entrenar"},

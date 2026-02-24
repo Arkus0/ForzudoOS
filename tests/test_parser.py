@@ -23,7 +23,7 @@ class TestParseReminder:
         intent = parse_reminder("si no entreno en 2d")
         
         assert intent.trigger_type == TriggerType.CONDITIONAL
-        assert intent.trigger_data["hours"] == 48  # 2 días = 48h
+        assert intent.trigger_data["hours"] == 48
     
     def test_deload_warning(self) -> None:
         """Detecta aviso de deload."""
