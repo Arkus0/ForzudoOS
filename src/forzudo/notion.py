@@ -309,26 +309,19 @@ class WorkoutEntry:
     hevy_id: str
 
 
-def sync_workout_from_bbd(
-    forzudo_db_id: str,
-    bbd_data: dict,  # Datos exportados desde BBD Analytics
-) -> str:
-    """Sincroniza un entreno desde BBD Analytics a ForzudoOS.
-    
-    Esto NO toca BBD Analytics. Recibe los datos ya procesados
-    y los guarda en la base de datos propia de ForzudoOS.
-    """
+def create_workout_entry(database_id: str, workout: dict) -> str:
+    """Crea un nuevo entreno en ForzudoOS."""
     body = {
-        "parent": {"database_id": forzudo_db_id},
+        "parent": {"database_id": database_id},
         "properties": {
-            "Ejercicio": {"title": [{"text": {"content": bbd_data["exercise"]}}]},
-            "Fecha": {"date": {"start": bbd_data["date"]}},
-            "Día BBB": {"select": {"name": bbd_data["day_bbb"]}},
-            "Semana": {"number": bbd_data["week"]},
-            "Peso Top": {"number": bbd_data["top_weight"]},
-            "Reps": {"rich_text": [{"text": {"content": bbd_data["reps"]}}]},
-            "Volumen": {"number": bbd_data["volume"]},
-            "Hevy ID": {"rich_text": [{"text": {"content": bbd_data["hevy_id"]}}]},
+            "Ejercicio": {"title": [{"text": {"content": workout["ejercicio"]}}]},
+            "Fecha": {"date": {"start": workout["fecha"]}},
+            "Día BBB": {"select": {"name": workout.get("dia_bbb", "")}},
+            "Semana": {"number": workout.get("semana", 0)},
+            "Peso Top": {"number": workout.get("peso_top", 0)},
+            "Reps": {"rich_text": [{"text": {"content": workout.get("reps", "")}}]},
+            "Volumen": {"number": workout.get("volumen", 0)},
+            "Hevy ID": {"rich_text": [{"text": {"content": workout.get("hevy_id", "")}}]},
             "Sincronizado": {"checkbox": True},
         },
     }

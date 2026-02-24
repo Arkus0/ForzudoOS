@@ -21,43 +21,41 @@ def main() -> int:
     subparsers.add_parser("setup", help="Crear bases de datos en Notion")
     
     # Comando: parse
-    parse_parser = subparsers.add_parser("parse", help="Parsear frase de recordatorio")
-    parse_parser.add_argument("text", help="Texto a parsear")
+    parse_p = subparsers.add_parser("parse", help="Parsear frase de recordatorio")
+    parse_p.add_argument("text", help="Texto a parsear")
     
     # Comando: recordar
-    remind_parser = subparsers.add_parser("recordar", help="Crear recordatorio")
-    remind_parser.add_argument("text", help="Texto del recordatorio")
-    remind_parser.add_argument("--user", default="juan", help="ID de usuario")
+    remind_p = subparsers.add_parser("recordar", help="Crear recordatorio")
+    remind_p.add_argument("text", help="Texto del recordatorio")
+    remind_p.add_argument("--user", default="juan", help="ID de usuario")
     
     # Comando: status
-    status_parser = subparsers.add_parser("status", help="Ver estado actual")
-    status_parser.add_argument("--workouts-db", help="ID de base de datos de entrenos")
+    status_p = subparsers.add_parser("status", help="Ver estado actual")
+    status_p.add_argument("--workouts-db", help="ID de base de datos de entrenos")
     
     # Comando: check
     subparsers.add_parser("check", help="Ejecutar checks de recordatorios")
     
-    # Comando: sync
-    sync_parser = subparsers.add_parser("sync", help="Sincronizar entreno desde BBD")
-    sync_parser.add_argument("--data", required=True, help="JSON con datos del entreno")
-    sync_parser.add_argument("--workouts-db", help="ID de base de datos de entrenos")
+    # Comando: sync-bbd
+    sync_bbd_p = subparsers.add_parser("sync-bbd", help="Sincronizar desde BBD Analytics")
+    sync_bbd_p.add_argument("--dry-run", action="store_true", help="Simular sin hacer cambios")
     
     # Comando: bot
-    bot_parser = subparsers.add_parser("bot", help="Probar bot de Telegram")
-    bot_parser.add_argument("message", help="Mensaje a procesar")
-    bot_parser.add_argument("--user", default="juan", help="ID de usuario")
+    bot_p = subparsers.add_parser("bot", help="Probar bot de Telegram")
+    bot_p.add_argument("message", help="Mensaje a procesar")
+    bot_p.add_argument("--user", default="juan", help="ID de usuario")
     
     # Comando: dashboard
-    dash_parser = subparsers.add_parser("dashboard", help="Generar datos para dashboard")
-    dash_parser.add_argument("--output", default="docs/data.json", help="Ruta de salida")
+    dash_p = subparsers.add_parser("dashboard", help="Generar datos para dashboard")
+    dash_p.add_argument("--output", default="docs/data.json", help="Ruta de salida")
     
     # Comando: cron
-    cron_parser = subparsers.add_parser("cron", help="Gestión de cron jobs")
-    cron_subparsers = cron_parser.add_subparsers(dest="cron_command")
-    
-    cron_subparsers.add_parser("list", help="Listar jobs")
-    cron_export = cron_subparsers.add_parser("export", help="Exportar jobs")
-    cron_export.add_argument("--output", default="forzudo-cron-jobs.json")
-    cron_subparsers.add_parser("register", help="Instrucciones de registro")
+    cron_p = subparsers.add_parser("cron", help="Gestión de cron jobs")
+    cron_sub = cron_p.add_subparsers(dest="cron_command")
+    cron_sub.add_parser("list", help="Listar jobs")
+    cron_exp = cron_sub.add_parser("export", help="Exportar jobs")
+    cron_exp.add_argument("--output", default="forzudo-cron-jobs.json")
+    cron_sub.add_parser("register", help="Instrucciones de registro")
     
     args, remaining = parser.parse_known_args()
     
@@ -76,20 +74,22 @@ def main() -> int:
     if args.command == "check":
         return cmd_check()
     
-    if args.command == "sync":
-        return cmd_sync(remaining)
-    
-    if args.command == "dashboard":
-        return cmd_dashboard(args)
-    
-    if args.command == "cron":
-        return cmd_cron(args, cron_parser)
+    if args.command == "sync-bbd":
+        from forzudo.sync_bbd import cmd_sync_bbd
+        return cmd_sync_bbd(["--dry-run"] if args.dry_run else [])
     
     if args.command == "bot":
         from forzudo.telegram_bot import process_telegram_message
         response = process_telegram_message(args.message, args.user)
         print(response)
         return 0
+    
+    if args.command == "dashboard":
+        from forzudo.dashboard_generator import cmd_generate_dashboard
+        return cmd_generate_dashboard([f"--output={args.output}"])
+    
+    if args.command == "cron":
+        return cmd_cron(args, cron_p)
     
     parser.print_help()
     return 1
@@ -99,42 +99,35 @@ def cmd_setup(args: list[str]) -> int:
     """Setup de ForzudoOS en Notion."""
     import argparse
     
-    parser = argparse.ArgumentParser(description="Setup de ForzudoOS en Notion")
-    parser.add_argument("--parent-page", help="ID de página padre en Notion")
-    pargs = parser.parse_args(args)
+    p = argparse.ArgumentParser(description="Setup de ForzudoOS en Notion")
+    p.add_argument("--parent-page", help="ID de página padre en Notion")
+    pa = p.parse_args(args)
     
-    parent = pargs.parent_page or os.environ.get("FORZUDO_PARENT_PAGE")
-    
+    parent = pa.parent_page or os.environ.get("FORZUDO_PARENT_PAGE")
     if not parent:
         print("❌ Se necesita --parent-page o FORZUDO_PARENT_PAGE")
         return 1
     
     try:
         from forzudo.notion import setup_forzudo_notion
-        
         print(f"🏗️ Configurando ForzudoOS en Notion...")
         dbs = setup_forzudo_notion(parent)
-        
         print("\n✅ Setup completado!")
         print(f'FORZUDO_REMINDERS_DB="{dbs["reminders_db"]}"')
         print(f'FORZUDO_WORKOUTS_DB="{dbs["workouts_db"]}"')
         return 0
-        
     except Exception as e:
         print(f"❌ Error: {e}")
         return 1
 
 
 def cmd_parse(args) -> int:
-    """Parsear frase de recordatorio."""
+    """Parsear frase."""
     from forzudo.parser import parse_reminder
-    
     intent = parse_reminder(args.text)
-    print(f"📝 Texto: {intent.raw_text}")
-    print(f"🔔 Trigger: {intent.trigger_type.name}")
-    print(f"📊 Datos: {intent.trigger_data}")
-    print(f"⚡ Acción: {intent.action_type.name}")
-    print(f"\n🔧 Job:\n{intent.to_cron_job()}")
+    print(f"📝 {intent.raw_text}")
+    print(f"🔔 {intent.trigger_type.name}")
+    print(f"📊 {intent.trigger_data}")
     return 0
 
 
@@ -151,15 +144,14 @@ def cmd_recordar(args) -> int:
 
 
 def cmd_status(args: list[str]) -> int:
-    """Ver estado actual."""
+    """Ver estado."""
     import argparse
     
-    parser = argparse.ArgumentParser(description="Estado actual")
-    parser.add_argument("--workouts-db", help="ID de base de datos de entrenos")
-    pargs = parser.parse_args(args)
+    p = argparse.ArgumentParser(description="Estado actual")
+    p.add_argument("--workouts-db", help="ID de base de datos de entrenos")
+    pa = p.parse_args(args)
     
-    workouts_db = pargs.workouts_db or os.environ.get("FORZUDO_WORKOUTS_DB")
-    
+    workouts_db = pa.workouts_db or os.environ.get("FORZUDO_WORKOUTS_DB")
     from forzudo.context import get_quick_status
     
     if workouts_db:
@@ -176,7 +168,7 @@ def cmd_status(args: list[str]) -> int:
 
 
 def cmd_check() -> int:
-    """Ejecutar checks de recordatorios."""
+    """Ejecutar checks."""
     from forzudo.scheduler import Scheduler
     
     scheduler = Scheduler()
@@ -186,47 +178,10 @@ def cmd_check() -> int:
         print("✅ No hay recordatorios pendientes")
         return 0
     
-    print(f"🔔 {len(triggered)} recordatorio(s) disparado(s):\n")
     for t in triggered:
-        print(f"Job: {t['job_id']}")
-        print(f"Mensaje:\n{t['message']}")
-        print("-" * 40)
+        print(f"🔔 {t['job_id']}: {t['reason']}")
+        print(t['message'])
     return 0
-
-
-def cmd_sync(args: list[str]) -> int:
-    """Sincronizar entreno desde BBD."""
-    import argparse
-    import json
-    
-    parser = argparse.ArgumentParser(description="Sincronizar entreno desde BBD")
-    parser.add_argument("--data", required=True, help="JSON con datos del entreno")
-    parser.add_argument("--workouts-db", help="ID de base de datos de entrenos")
-    pargs = parser.parse_args(args)
-    
-    workouts_db = pargs.workouts_db or os.environ.get("FORZUDO_WORKOUTS_DB")
-    
-    if not workouts_db:
-        print("❌ Se necesita --workouts-db o FORZUDO_WORKOUTS_DB")
-        return 1
-    
-    try:
-        data = json.loads(pargs.data)
-        from forzudo.notion import sync_workout_from_bbd
-        
-        page_id = sync_workout_from_bbd(workouts_db, data)
-        print(f"✅ Entreno sincronizado: {page_id}")
-        return 0
-        
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return 1
-
-
-def cmd_dashboard(args) -> int:
-    """Generar datos para dashboard."""
-    from forzudo.dashboard_generator import cmd_generate_dashboard
-    return cmd_generate_dashboard([f"--output={args.output}"])
 
 
 def cmd_cron(args, cron_parser) -> int:
