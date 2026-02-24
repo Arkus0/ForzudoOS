@@ -106,6 +106,48 @@ def cmd_sync(args: list[str]) -> int:
         return 1
 
 
+def cmd_cron(args: list[str]) -> int:
+    """Comandos de gestión de cron jobs."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Gestión de cron jobs")
+    subparsers = parser.add_subparsers(dest="cron_command", help="Subcomandos")
+    
+    # cron list
+    subparsers.add_parser("list", help="Listar jobs de ForzudoOS")
+    
+    # cron export
+    export_parser = subparsers.add_parser("export", help="Exportar jobs a archivo")
+    export_parser.add_argument("--output", default="forzudo-cron-jobs.json")
+    
+    # cron register
+    subparsers.add_parser("register", help="Mostrar instrucciones de registro")
+    
+    # Si no hay subcomando, mostrar ayuda
+    if not args or args[0] not in ["list", "export", "register"]:
+        parser.print_help()
+        return 1
+    
+    # Parsear con el subcomando como primer argumento
+    pargs = parser.parse_args(args[:1])
+    remaining = args[1:] if len(args) > 1 else []
+    
+    if pargs.cron_command == "list":
+        from forzudo.cron_manager import cmd_cron_list
+        return cmd_cron_list(remaining)
+    
+    if pargs.cron_command == "export":
+        from forzudo.cron_manager import cmd_cron_export
+        return cmd_cron_export([f"--output={pargs.output}"] + remaining)
+    
+    if pargs.cron_command == "register":
+        from forzudo.cron_manager import cmd_cron_register
+        return cmd_cron_register(remaining)
+    
+    parser.print_help()
+    return 1
+
+
 def main() -> int:
     """Entry point principal."""
     import argparse
@@ -138,6 +180,15 @@ def main() -> int:
     sync_parser = subparsers.add_parser("sync", help="Sincronizar entreno desde BBD")
     sync_parser.add_argument("--data", required=True, help="JSON con datos del entreno")
     sync_parser.add_argument("--workouts-db", help="ID de base de datos de entrenos")
+    
+    # Comando: cron (con subcomandos directos)
+    cron_parser = subparsers.add_parser("cron", help="Gestión de cron jobs")
+    cron_subparsers = cron_parser.add_subparsers(dest="cron_command")
+    
+    cron_subparsers.add_parser("list", help="Listar jobs")
+    cron_export = cron_subparsers.add_parser("export", help="Exportar jobs")
+    cron_export.add_argument("--output", default="forzudo-cron-jobs.json")
+    cron_subparsers.add_parser("register", help="Instrucciones de registro")
     
     args, remaining = parser.parse_known_args()
     
@@ -184,6 +235,20 @@ def main() -> int:
     
     if args.command == "sync":
         return cmd_sync(remaining)
+    
+    if args.command == "cron":
+        if args.cron_command == "list":
+            from forzudo.cron_manager import cmd_cron_list
+            return cmd_cron_list([])
+        elif args.cron_command == "export":
+            from forzudo.cron_manager import cmd_cron_export
+            return cmd_cron_export([f"--output={args.output}"])
+        elif args.cron_command == "register":
+            from forzudo.cron_manager import cmd_cron_register
+            return cmd_cron_register([])
+        else:
+            cron_parser.print_help()
+            return 1
     
     parser.print_help()
     return 1
