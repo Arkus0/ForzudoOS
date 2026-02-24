@@ -1,0 +1,59 @@
+[project]
+name = "forzudo"
+version = "0.1.0"
+description = "Sistema híbrido de recordatorios inteligentes + dashboard para forzudos"
+readme = "README.md"
+authors = [
+    { name = "Juan José", email = "juan@forzudo.ai" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31.0",
+    "pydantic>=2.5.0",
+    "python-dateutil>=2.8.0",
+    "rich>=13.7.0",
+]
+
+[project.scripts]
+forzudo = "forzudo.cli:main"
+
+[dependency-groups]
+dev = [
+    {include-group = "lint"},
+    {include-group = "test"},
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.15.2",
+    "ty>=0.0.18",
+]
+lint = ["ruff", "ty"]
+test = ["pytest", "pytest-cov"]
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D", "COM812", "ISC001", "ANN", "S101"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.environment]
+python-version = "3.11"
+
+[tool.ty.rules]
+possibly-unresolved-reference = "error"
+unused-ignore-comment = "warn"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--cov=forzudo", "--cov-report=term-missing"]
