@@ -1,0 +1,150 @@
+{
+  "generatedAt": "2026-02-25T04:44:00.311442",
+  "cycle": {
+    "weekInMacro": 1,
+    "weekType": 1,
+    "weekName": "Semana 5s",
+    "macroNum": 1,
+    "tmBumpsCompleted": 0,
+    "completedWeeks": 0,
+    "isDeloadWeek": false,
+    "daysUntilDeload": 6
+  },
+  "nextSession": {
+    "dayName": "D\u00eda 1 - OHP",
+    "focus": "Press + Hombros",
+    "mainLift": "ohp",
+    "weekName": "Semana 5s",
+    "macroNum": 1,
+    "weekInMacro": 1,
+    "workingSets": [
+      {
+        "weight": 38,
+        "reps": 5,
+        "pct": 0.65
+      },
+      {
+        "weight": 44,
+        "reps": 5,
+        "pct": 0.75
+      },
+      {
+        "weight": 50,
+        "reps": "5+",
+        "pct": 0.85
+      }
+    ]
+  },
+  "lastWorkout": null,
+  "workouts": [],
+  "upcoming": [
+    {
+      "date": "2026-02-25",
+      "dayName": "D\u00eda 3 - Bench",
+      "focus": "Press de Banca",
+      "mainLift": "bench",
+      "weekName": "Semana 5s",
+      "workingSets": [
+        {
+          "weight": 50,
+          "reps": 5,
+          "pct": 0.65
+        },
+        {
+          "weight": 56,
+          "reps": 5,
+          "pct": 0.75
+        },
+        {
+          "weight": 64,
+          "reps": "5+",
+          "pct": 0.85
+        }
+      ]
+    },
+    {
+      "date": "2026-02-26",
+      "dayName": "D\u00eda 4 - Squat",
+      "focus": "Sentadilla",
+      "mainLift": "squat",
+      "weekName": "Semana 5s",
+      "workingSets": [
+        {
+          "weight": 52,
+          "reps": 5,
+          "pct": 0.65
+        },
+        {
+          "weight": 60,
+          "reps": 5,
+          "pct": 0.75
+        },
+        {
+          "weight": 68,
+          "reps": "5+",
+          "pct": 0.85
+        }
+      ]
+    },
+    {
+      "date": "2026-03-02",
+      "dayName": "D\u00eda 1 - OHP",
+      "focus": "Press + Hombros",
+      "mainLift": "ohp",
+      "weekName": "Semana 5s",
+      "workingSets": [
+        {
+          "weight": 38,
+          "reps": 5,
+          "pct": 0.65
+        },
+        {
+          "weight": 44,
+          "reps": 5,
+          "pct": 0.75
+        },
+        {
+          "weight": 50,
+          "reps": "5+",
+          "pct": 0.85
+        }
+      ]
+    },
+    {
+      "date": "2026-03-03",
+      "dayName": "D\u00eda 2 - Deadlift",
+      "focus": "Peso Muerto",
+      "mainLift": "deadlift",
+      "weekName": "Semana 5s",
+      "workingSets": [
+        {
+          "weight": 92,
+          "reps": 5,
+          "pct": 0.65
+        },
+        {
+          "weight": 104,
+          "reps": 5,
+          "pct": 0.75
+        },
+        {
+          "weight": 120,
+          "reps": "5+",
+          "pct": 0.85
+        }
+      ]
+    }
+  ],
+  "alerts": [
+    {
+      "type": "success",
+      "icon": "\u2705",
+      "message": "Todo en orden, forzudo"
+    }
+  ],
+  "stats": {
+    "totalSessions": 0,
+    "totalVolume": 0,
+    "currentStreak": 0
+  }
+}

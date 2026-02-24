@@ -12,7 +12,7 @@ Un sistema que entiende recordatorios en lenguaje natural y los enriquece con co
 - **Context Engine**: Calcula estado del ciclo 5/3/1, próximos pesos, alertas
 - **Notion Integration**: Almacena recordatorios y entrenos en bases de datos propias
 - **Scheduler**: Cron jobs que verifican condiciones
-- **Dashboard**: Vista unificada (próximamente)
+- **Dashboard**: Vista unificada HTML (GitHub Pages o local)
 - **Telegram Bot**: Interacción rápida (próximamente)
 
 ## Setup Inicial
@@ -60,38 +60,74 @@ uv run forzudo check
 
 # Sincronizar entreno desde BBD Analytics
 uv run forzudo sync --data '{"exercise":"Bench","date":"2026-02-25",...}'
+
+# Generar datos para dashboard
+uv run forzudo dashboard
+
+# Gestión de cron jobs
+uv run forzudo cron list
+uv run forzudo cron export
 ```
 
-### Ejemplos de frases soportadas
+### Dashboard
 
-| Frase | Qué hace |
-|-------|----------|
-| "avísame si no he entrenado en 48h" | Check cada 6h, alerta si >48h sin entreno |
-| "avísame del deload 3 días antes" | Aviso cuando queden 3 días para deload |
-| "qué toca hoy" | Muestra próximo entreno con pesos esperados |
+El dashboard es una aplicación HTML/JS estática que puede funcionar de dos formas:
+
+#### Opción 1: Local (recomendado para repos privados)
+
+```bash
+# Generar datos
+uv run forzudo dashboard
+
+# Servir localmente
+python -m http.server 8080 --directory docs/
+
+# Abrir en navegador
+open http://localhost:8080
+```
+
+#### Opción 2: GitHub Pages (requiere repo público o plan Pro)
+
+Si tu repo es público, GitHub Pages funciona gratis. Si es privado, necesitas GitHub Pro.
+
+Para habilitar:
+1. Settings → Pages → Source → Deploy from branch
+2. Selecciona `main` y carpeta `/docs`
+3. Guarda
 
 ## Arquitectura
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Parser    │────>│  Scheduler  │────>│    Cron     │
-│     NL      │     │             │     │   Jobs      │
-└─────────────┘     └──────┬──────┘     └──────┬──────┘
-                           │                    │
-                           ▼                    ▼
-                  ┌─────────────────┐    ┌─────────────┐
-                  │  Context Engine │    │   Notion    │
-                  │   (5/3/1 calc)  │    │   (store)   │
-                  └─────────────────┘    └─────────────┘
+│   Parser    │────>│  Scheduler  │────>│  OpenClaw   │
+│     NL      │     │             │     │    Cron     │
+└─────────────┘     └──────┬──────┘     └─────────────┘
                            │
                            ▼
                   ┌─────────────────┐
-                  │  BBD Analytics  │
-                  │  (solo lectura) │
-                  └─────────────────┘
+                  │  Context Engine │
+                  │   (5/3/1 calc)  │
+                  └────────┬────────┘
+                           │
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+      ┌──────────┐  ┌──────────┐  ┌──────────┐
+      │  Notion  │  │ Dashboard│  │ Telegram │
+      │  (store) │  │  (HTML)  │  │   (bot)  │
+      └──────────┘  └──────────┘  └──────────┘
 ```
 
 **Nota importante**: ForzudoOS **nunca modifica** BBD Analytics. Solo lee datos o recibe sincronizaciones manuales.
+
+## Cron Jobs Activos
+
+ForzudoOS registra automáticamente 3 cron jobs en OpenClaw:
+
+| Job | Frecuencia | Descripción |
+|-----|------------|-------------|
+| Check Workouts | Cada 6h | Verifica recordatorios pendientes |
+| Daily Summary | 7:00 AM | Envía resumen diario |
+| Deload Warning | Cada 24h | Avisa cuando se acerca el deload |
 
 ## Desarrollo
 
@@ -105,6 +141,9 @@ uv run ruff format .
 
 # Type check
 uv run ty check src/
+
+# Generar datos para dashboard
+uv run forzudo dashboard
 ```
 
 ## Roadmap
@@ -113,9 +152,9 @@ uv run ty check src/
 - [x] Cálculos 5/3/1 independientes
 - [x] Integración Notion (bases de datos propias)
 - [x] Scheduler con cron jobs
-- [ ] Sincronización automática desde BBD
-- [ ] Dashboard GitHub Pages
+- [x] Dashboard HTML estático
 - [ ] Telegram Bot
+- [ ] Sincronización automática desde BBD
 
 ## Stack
 
@@ -125,6 +164,8 @@ uv run ty check src/
 - ty (type checking)
 - pytest (testing)
 - Notion API
+- OpenClaw Cron
+- HTML/CSS/JS vanilla (dashboard)
 
 ---
 
