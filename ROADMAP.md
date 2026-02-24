@@ -46,19 +46,22 @@
 
 ---
 
-## Fase 4: Dashboard GitHub Pages (Día 4-5)
+## Fase 4: Dashboard GitHub Pages ✅ COMPLETADA
 **Objetivo:** Vista unificada web, privada, en tu repo
 
-- [ ] Crear estructura HTML/JS vanilla (sin frameworks pesados)
-- [ ] Página principal con:
+- [x] Crear estructura HTML/JS vanilla (sin frameworks pesados)
+- [x] Página principal con:
   - Estado del mesociclo 5/3/1 (gráfico visual)
   - Próximo entreno (qué toca, pesos esperados)
   - Alertas activas (lo que necesita atención)
-  - Citas/tareas del día (integración con Juan-Calendar)
-- [ ] Deploy en GitHub Pages (privado, acceso solo tuyo)
-- [ ] Tema oscuro, diseño minimalista
+  - Calendario semanal
+  - Stats rápidas
+- [x] Tema oscuro, diseño minimalista
+- [x] Dashboard generator: crea data.json desde Python
+- [x] Responsive (mobile-first)
+- [x] Documentado: local server o GitHub Pages (requiere Pro para privados)
 
-**Entregable:** URL funcional con dashboard personal
+**Entregable:** Dashboard funcional en `docs/` ✅
 
 ---
 
@@ -119,4 +122,4 @@
 ---
 
 *Creado: 2025-02-25*
-*Fase actual: 4 (Dashboard)*
+*Fase actual: 5 (Telegram Bot)*
