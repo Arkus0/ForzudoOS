@@ -1,9 +1,10 @@
 # Configuración de CapturaIA
-# Tras editar este archivo, reinicia la app para aplicar los cambios.
+# Casi todo se puede cambiar desde la pantalla de inicio de la app. Si editas este archivo a
+# mano, reinicia la app para aplicar los cambios.
 
 [gemini]
-# Déjalo vacío para usar la variable de entorno GEMINI_API_KEY (recomendado).
-# Consigue una clave gratis en https://aistudio.google.com/apikey
+# Tu clave de Gemini (se rellena desde la pantalla de inicio). Vacío = usar la variable de
+# entorno GEMINI_API_KEY. Consigue una clave gratis en https://aistudio.google.com/apikey
 api_key = ""
 
 # Modelo de Gemini. Alternativas: "gemini-flash-latest" (siempre el Flash más reciente),
@@ -113,17 +114,16 @@ scroll_hotkey = "<f10>"
 
 [phone]
 # Ver las respuestas en el móvil (por ejemplo, en un cuello de cisne junto a tu monitor).
-# CapturaIA abre una página en tu wifi de casa: el móvil la abre en el navegador, sin
-# instalar nada y sin pasar por servidores de fuera. La dirección y un código QR están en
-# Archivo ▸ Conectar el móvil. El móvil y el PC2 tienen que estar en la misma wifi.
+# CapturaIA abre una página que el móvil abre en el navegador, sin instalar nada y sin pasar
+# por servidores de fuera. La dirección y un código QR están en Archivo ▸ Conectar el móvil.
 enabled = true
 # Puerto de la página (cámbialo solo si otro programa ya usa este).
 port = 8765
 # Tamaño de letra máximo en el móvil, en píxeles (luego se ajusta desde el propio móvil).
 font_size = 40
-# Móvil por cable USB al PC2 (recomendado): la página se abre como http://localhost, la
-# dirección no cambia nunca y no depende de la wifi. Necesita adb (Android SDK Platform-Tools)
-# y «Depuración USB» activada en el móvil. Si no se encuentra adb, se usa solo la wifi.
+# Móvil por cable USB o emparejado sin cable (recomendado): la página se abre como
+# http://localhost, la dirección no cambia nunca. Necesita adb (Android SDK Platform-Tools) y
+# la depuración USB o inalámbrica activada en el móvil. Sin adb, se usa la wifi con la IP.
 usb = true
 # Ruta de adb.exe. Vacío = buscarlo en el PATH y en la carpeta platform-tools junto a la app.
 adb_path = ""

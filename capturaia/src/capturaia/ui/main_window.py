@@ -11,7 +11,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QByteArray, QSettings, QSize, Qt, QThreadPool, QTimer, QUrl
+from PySide6.QtCore import (
+    QByteArray,
+    QSettings,
+    QSize,
+    Qt,
+    QThreadPool,
+    QTimer,
+    QUrl,
+    Signal,
+)
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
@@ -65,6 +74,8 @@ class _Request:
 
 
 class MainWindow(QMainWindow):
+    setup_requested = Signal()  # Archivo ▸ Pantalla de inicio
+
     def __init__(
         self,
         config: AppConfig,
@@ -226,6 +237,9 @@ class MainWindow(QMainWindow):
 
     def _build_menu(self) -> None:
         menu = self.menuBar().addMenu("Archivo")
+        start_screen = menu.addAction("Pantalla de inicio…")
+        start_screen.triggered.connect(self.setup_requested.emit)
+        menu.addSeparator()
         if self._history.folder is not None:
             open_folder = menu.addAction("Abrir carpeta de capturas")
             open_folder.triggered.connect(self.open_history_folder)

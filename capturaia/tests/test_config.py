@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import tomllib
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -9,8 +11,12 @@ from capturaia.config import (
     ConfigError,
     GeminiConfig,
     PresenterConfig,
+    Preset,
     default_config_path,
     load_config,
+    parse_config,
+    render_config,
+    save_config,
 )
 
 
@@ -142,3 +148,48 @@ def test_phone_section(tmp_path: Path) -> None:
     path.write_text("[phone]\nport = 80\n", encoding="utf-8")
     with pytest.raises(ConfigError, match="port"):
         load_config(path)
+
+
+def test_render_and_parse_round_trip(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    base = load_config(path)
+    tricky = replace(
+        base,
+        gemini=replace(
+            base.gemini,
+            api_key="AIza-clave",
+            model="gemini-3.5-flash-lite",
+            system_instruction='Usa "comillas", barras \\ y """ triples.\nSegunda línea: ñ á ü',
+        ),
+        presets=(
+            Preset('Pregunta "rara"', 'Línea 1\nLínea 2 con "comillas" y \\', "<ctrl>+<f13>"),
+            Preset("Otra", "Breve", "<f9>"),
+        ),
+        history=replace(base.history, folder=tmp_path / "otra carpeta"),
+        presenter=replace(base.presenter, side="right", strip_width=420),
+        phone=replace(base.phone, port=9000, usb=False),
+    )
+    text = render_config(tricky)
+    again = parse_config(tomllib.loads(text), path=path)
+    assert again == tricky
+
+
+def test_default_history_folder_is_written_empty(tmp_path: Path) -> None:
+    cfg = load_config(tmp_path / "config.toml")
+    assert 'folder = ""' in render_config(cfg)
+
+
+def test_save_config_keeps_backup_and_validates(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    cfg = load_config(path)
+    original = path.read_text(encoding="utf-8")
+    new = replace(cfg, gemini=replace(cfg.gemini, api_key="nueva"))
+    assert save_config(new) == path
+    assert load_config(path).gemini.api_key == "nueva"
+    assert (tmp_path / "config.toml.bak").read_text(encoding="utf-8") == original
+    assert not (tmp_path / "config.toml.tmp").exists()
+
+    broken = replace(cfg, presets=())
+    with pytest.raises(ConfigError):
+        save_config(broken)
+    assert load_config(path).gemini.api_key == "nueva"  # no se ha tocado

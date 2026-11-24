@@ -25,60 +25,73 @@ Todo eso lo hace CapturaIA sola. Tú solo pulsas el botón y lees.
 
 ## Una sola vez (en este orden)
 
-**En el PC2**
+**Preparar el PC2**
 
 1. Instala **uv** (abre PowerShell y pega):
    `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 2. Descarga CapturaIA (el ZIP del repositorio en GitHub) y entra en la carpeta `capturaia`.
-3. Guarda tu clave de Gemini (gratis en <https://aistudio.google.com/apikey>). En PowerShell:
-   `setx GEMINI_API_KEY "tu-clave"`, y cierra PowerShell.
-4. Descarga **«SDK Platform-Tools for Windows»** de
+3. Descarga **«SDK Platform-Tools for Windows»** de
    <https://developer.android.com/tools/releases/platform-tools> y descomprímelo **dentro de la
    carpeta `capturaia`**. Tiene que quedar `capturaia\platform-tools\adb.exe`.
-5. Conecta el PC2 a la **segunda entrada de la ASUS** (HDMI o DisplayPort) y déjalo así.
+4. Conecta el PC2 a la **segunda entrada de la ASUS** (HDMI o DisplayPort) y déjalo así.
    - Cuando quieras ver el PC2, cambia la entrada de la ASUS; luego vuelve a la del portátil.
    - Si la ASUS solo tiene una entrada, usa un adaptador «HDMI dummy» en el PC2.
+5. Para que CapturaIA arranque sola con el PC2: pulsa Win+R, escribe `shell:startup` y deja
+   ahí un acceso directo a `Iniciar CapturaIA.cmd`.
 6. Doble clic en **`Iniciar CapturaIA.cmd`**. La primera vez tarda un par de minutos.
-7. En la ventana, elige la capturadora (Cam Link) en **«Fuente»**. Se queda guardada.
-8. Para que arranque sola con el PC2: pulsa Win+R, escribe `shell:startup` y deja ahí un
-   acceso directo a `Iniciar CapturaIA.cmd`.
+   Se abre la **pantalla de inicio**.
 
-**En el móvil (Pixel)**
+**En la pantalla de inicio** (todo se guarda solo)
 
-9. Ajustes ▸ Información del teléfono ▸ pulsa **7 veces** en «Número de compilación» (activa
-   las Opciones para desarrolladores).
-10. Ajustes ▸ Sistema ▸ Opciones para desarrolladores ▸ **Depuración inalámbrica** ▸ actívala.
-    - Truco: en esas mismas opciones, busca «Iconos para desarrolladores en ajustes rápidos» y
-      añade «Depuración inalámbrica». Así la activas desde la cortina de notificaciones.
-11. Emparéjalos:
-    - En el PC2: **Archivo ▸ Emparejar el móvil sin cable**.
-    - En el móvil: Depuración inalámbrica ▸ «Vincular dispositivo con código de vinculación».
-    - Escribe en el PC2 la IP:puerto y el código de 6 cifras, y pulsa «Emparejar».
-12. Abre la página en el móvil:
-    - En el PC2: **Archivo ▸ Conectar el móvil**.
-    - Escanea el código QR con el móvil (la dirección empieza por `http://localhost:8765/`).
-    - En Chrome: ⋮ ▸ **Añadir a pantalla de inicio**. Ya tienes un icono para abrirla.
+![Pantalla de inicio](docs/inicio.png)
+
+7. **Gemini:**
+   - Pega tu clave (gratis en <https://aistudio.google.com/apikey>).
+   - Deja el modelo recomendado, o pulsa «Cargar modelos de mi cuenta» para elegir otro.
+8. **Preguntas y teclas:**
+   - Cambia los nombres y los textos de las preguntas si quieres, o añade más.
+   - Para asignar un botón del mando, pulsa el botón de la tecla de esa fila y luego el botón
+     del mando.
+   - Cuando pulses un botón ya asignado, su fila marca «✓ recibida».
+9. **Capturadora:** elige la Cam Link. A la derecha verás la imagen del portátil.
+10. **Móvil:**
+    - Activa las Opciones para desarrolladores del Pixel: Ajustes ▸ Información del teléfono ▸
+      pulsa **7 veces** en «Número de compilación».
+    - Activa Opciones para desarrolladores ▸ **Depuración inalámbrica**. Truco: en esas mismas
+      opciones, añade «Depuración inalámbrica» a los ajustes rápidos («Iconos para
+      desarrolladores en ajustes rápidos») y la activarás con un toque.
+    - Pulsa **«Emparejar sin cable…»** y, en el móvil, Depuración inalámbrica ▸ «Vincular
+      dispositivo con código de vinculación». Escribe la IP:puerto y el código de 6 cifras.
+    - Pulsa **«Código QR para abrir la página…»**, escanéalo con el móvil y, en Chrome,
+      ⋮ ▸ **Añadir a pantalla de inicio**.
+11. **Comprobación:**
+    - Los cinco puntos deben estar en verde: Capturadora, Gemini, Teclas, Móvil y Pantalla del
+      móvil.
+    - Pulsa «Pregunta de prueba» para ver una respuesta de verdad (también llega al móvil).
+12. Pulsa **«Guardar y empezar»**.
 
 **El mando (8BitDo o similar)**
 
-13. Ponlo en **modo teclado** y empareja por Bluetooth con el **PC2** (no con el móvil).
-    Con su programa, asigna a los botones:
-    - **F8**: Explícame esto
-    - **F9**: Pon un ejemplo
-    - **F7**: Datos clave
-    - **F10**: pasar página si la respuesta es larga
+13. Ponlo en **modo teclado** y empareja por Bluetooth con el **PC2** (no con el móvil). Que
+    sus botones envíen teclas (F7, F8, F9, F10…) y asígnalas en la pantalla de inicio (paso 8).
+
+Para volver a la pantalla de inicio desde la app: **Archivo ▸ Pantalla de inicio**.
 
 ---
 
 ## Cada día de grabación
 
-- [ ] Enciende el PC2 (CapturaIA arranca sola).
+- [ ] Enciende el PC2 (CapturaIA arranca sola, en la pantalla de inicio).
 - [ ] Móvil en la wifi de casa, con el **cargador** puesto.
 - [ ] Activa **Depuración inalámbrica** (Android la apaga al reiniciar o cambiar de wifi).
 - [ ] Abre el icono de CapturaIA, pon el móvil **en horizontal** y **toca la pantalla una vez**.
       Pasa a pantalla completa y ya no se apaga.
-- [ ] Comprueba que pone **«Listo. Pulsa una tecla para preguntar.»**, sin avisos en rojo ni
-      la nota amarilla «La pantalla puede apagarse».
+- [ ] En el móvil verás «Pantalla de inicio del PC2: comprobando…» y, cuando todo esté en
+      verde, «Todo listo. Empieza en 10 s…». A los 10 s pasa a **«Listo. Pulsa una tecla para
+      preguntar.»**, sin avisos en rojo ni la nota amarilla «La pantalla puede apagarse».
+- [ ] Si en el móvil sale en rojo «Revisa la pantalla de inicio del PC2: …», cambia la entrada
+      de la ASUS al PC2, arregla lo que esté en rojo, pulsa «Guardar y empezar» y vuelve a la
+      entrada del portátil.
 - [ ] Haz un **F8 de prueba** con la primera diapositiva y mira que llega la respuesta.
 - [ ] A grabar. Gemini tarda unos segundos, así que ten una frase puente preparada («Esto es
       importante, fijaos bien…»).
@@ -94,8 +107,9 @@ afectada; solo pierdes la ayuda en ese momento.
 |---|---|
 | «Sin conexión con CapturaIA» (rojo) | Comprueba que el PC2 está encendido y que **Depuración inalámbrica** sigue activada; reactívala si se apagó. Se reconecta sola en unos segundos. |
 | «Sin señal de la capturadora» | Revisa el cable HDMI que va del splitter a la capturadora y el USB de la capturadora al PC2. Se reconecta sola. |
-| «Gemini no está listo: …» | La clave de Gemini falta o no es válida, o el PC2 no tiene internet. Revisa el paso 3. |
-| «Teclas: …» | El PC2 no ha podido activar las teclas. Cierra CapturaIA y vuelve a abrirla con `Iniciar CapturaIA.cmd`. |
+| «Revisa la pantalla de inicio del PC2: …» | La app no ha arrancado sola porque algo está en rojo (lo dice el aviso). Cambia la entrada de la ASUS al PC2 y arréglalo ahí. |
+| «Gemini no está listo: …» | La clave de Gemini falta o no es válida, o el PC2 no tiene internet. Revisa la clave en la pantalla de inicio (Archivo ▸ Pantalla de inicio). |
+| «Teclas: …» | Hay una tecla repetida o el PC2 no ha podido activarlas. Revísalas en la pantalla de inicio; si sigue, cierra CapturaIA y vuelve a abrirla con `Iniciar CapturaIA.cmd`. |
 | «La pantalla puede apagarse» (amarillo, abajo) | Toca la pantalla una vez. Si sigue, cierra y abre la página desde el icono: tiene que ser la dirección `localhost`. |
 | Pulsas el mando y no pasa nada (sin ningún aviso) | Mira que el mando esté encendido y emparejado con el **PC2**, y que sus botones envíen F8/F9/F7. Para comprobarlo, pulsa F8 en un teclado conectado al PC2. |
 | La respuesta no cabe | Pulsa **F10** para pasar página. |

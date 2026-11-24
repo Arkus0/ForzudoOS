@@ -69,6 +69,25 @@ class GeminiClient:
             raise GeminiError(msg) from exc
         return getattr(info, "display_name", None) or self.model
 
+    def list_models(self) -> list[str]:
+        """Modelos Gemini de tu cuenta que sirven para hacer preguntas (generateContent)."""
+        from google.genai import errors  # noqa: PLC0415
+
+        try:
+            models = list(self._client.models.list())
+        except errors.APIError as exc:
+            raise GeminiError(describe_api_error(exc, self.model)) from exc
+        except Exception as exc:
+            msg = f"No se pudo contactar con Gemini ({type(exc).__name__}: {exc})"
+            raise GeminiError(msg) from exc
+        names = set()
+        for model in models:
+            name = (getattr(model, "name", "") or "").removeprefix("models/")
+            actions = getattr(model, "supported_actions", None) or []
+            if name.startswith("gemini") and (not actions or "generateContent" in actions):
+                names.add(name)
+        return sorted(names)
+
     def ask_stream(self, jpeg: bytes, prompt: str) -> Iterator[str]:
         """Envía la imagen y la pregunta; va devolviendo el texto según llega."""
         from google.genai import errors  # noqa: PLC0415

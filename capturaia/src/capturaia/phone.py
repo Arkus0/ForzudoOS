@@ -31,6 +31,7 @@ class PhoneState:
         self._payload = b'{"version": 0, "cards": [], "health": {}, "alert": ""}'
         self._last_json = ""
         self._last_poll: float | None = None
+        self._awake: bool | None = None
 
     def publish(self, data: dict[str, Any]) -> bool:
         """Guarda un estado nuevo. Devuelve True si ha cambiado."""
@@ -45,9 +46,11 @@ class PhoneState:
             ).encode("utf-8")
             return True
 
-    def snapshot(self, known_version: int | None) -> bytes:
+    def snapshot(self, known_version: int | None, awake: bool | None = None) -> bytes:
         with self._lock:
             self._last_poll = self._clock()
+            if awake is not None:
+                self._awake = awake
             if known_version == self._version:
                 return json.dumps({"version": self._version}).encode("utf-8")
             return self._payload
@@ -63,6 +66,13 @@ class PhoneState:
             if self._last_poll is None:
                 return None
             return self._clock() - self._last_poll <= STALE_AFTER_S
+
+    def phone_awake(self) -> bool | None:
+        """¿El móvil tiene la pantalla bloqueada encendida? None si no está leyendo."""
+        if not self.connected():
+            return None
+        with self._lock:
+            return self._awake
 
 
 class PhoneServer:
@@ -105,9 +115,12 @@ def _make_handler(server: PhoneServer) -> type[BaseHTTPRequestHandler]:
             if parts.path in (base, base + "/"):
                 self._send(200, "text/html; charset=utf-8", server.page())
             elif parts.path == base + "/state":
-                raw = parse_qs(parts.query).get("v", [""])[0]
+                query = parse_qs(parts.query)
+                raw = query.get("v", [""])[0]
                 known = int(raw) if raw.lstrip("-").isdigit() else None
-                self._send(200, "application/json; charset=utf-8", server.state.snapshot(known))
+                awake = {"1": True, "0": False}.get(query.get("awake", [""])[0])
+                body = server.state.snapshot(known, awake)
+                self._send(200, "application/json; charset=utf-8", body)
             else:
                 self._send(404, "text/plain; charset=utf-8", b"No encontrado")
 
@@ -342,7 +355,7 @@ PAGE = """<!doctype html>
     var isNew = !card || card.id !== cardId;
     if (!card) {
       answer.className = "";
-      answer.innerHTML = '<p class="hint">Listo. Pulsa una tecla para preguntar.</p>';
+      answer.innerHTML = '<p class="hint">' + esc(state.hint || "Listo. Pulsa una tecla para preguntar.") + "</p>";
     } else {
       answer.className = card.error ? "error" : "";
       answer.innerHTML = card.html || '<p class="wait">Pensando…</p>';
@@ -365,7 +378,7 @@ PAGE = """<!doctype html>
     document.getElementById("health").innerHTML = h;
   }
   function poll() {
-    fetch(base + "/state?v=" + version, { cache: "no-store" })
+    fetch(base + "/state?v=" + version + "&awake=" + (lock ? 1 : 0), { cache: "no-store" })
       .then(function (r) { return r.json(); })
       .then(function (state) {
         failures = 0;

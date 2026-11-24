@@ -19,6 +19,30 @@ PC1 ──HDMI──▶ capturadora ──USB/PCIe──▶ PC2 (CapturaIA) ─�
 
 ![Ventana de CapturaIA](docs/captura.png)
 
+## Pantalla de inicio
+
+Al abrir CapturaIA sale una pantalla donde se configura y se comprueba todo, sin tocar
+archivos:
+
+1. **Gemini:** la clave (se guarda en `config.toml`) y el modelo. Con «Cargar modelos de mi
+   cuenta» ves los modelos disponibles para tu clave.
+2. **Preguntas y teclas:** nombre, texto y tecla de cada pregunta. Para asignar una tecla,
+   pulsa el botón de la fila y luego la tecla o el botón del mando. Al pulsar una tecla ya
+   asignada, la fila marca «✓ recibida».
+3. **Capturadora:** el dispositivo, con una vista previa pequeña.
+4. **Móvil:** emparejar sin cable, código QR de la página y estado de la conexión.
+5. **Comprobación:** Capturadora, Gemini, Teclas, Móvil y Pantalla del móvil, en verde o en
+   rojo. Incluye una pregunta de prueba.
+
+Con todo en verde, **la app empieza sola a los 10 segundos**, porque el PC2 suele estar sin
+monitor. Cualquier clic o tecla en la pantalla cancela la cuenta atrás. Si algo está en rojo,
+la pantalla se queda esperando y el móvil avisa «Revisa la pantalla de inicio del PC2».
+
+- Para volver a ella desde la app: Archivo ▸ Pantalla de inicio.
+- Para saltarla: `uv run capturaia --directo`.
+
+![Pantalla de inicio](docs/inicio.png)
+
 ## Instalación en el PC2 (Windows)
 
 1. **Instala uv**, que gestiona Python y las dependencias. En PowerShell:
@@ -27,12 +51,9 @@ PC1 ──HDMI──▶ capturadora ──USB/PCIe──▶ PC2 (CapturaIA) ─�
    ```
 2. **Descarga el código.** Con git: `git clone` del repo. También puedes bajar el ZIP desde
    GitHub. Después entra en la carpeta `capturaia`.
-3. **Consigue una API key de Gemini** (gratis) en <https://aistudio.google.com/apikey> y
-   guárdala como variable de entorno:
-   ```powershell
-   setx GEMINI_API_KEY "tu-clave"
-   ```
-   Cierra y vuelve a abrir la terminal para que se aplique.
+3. **Consigue una API key de Gemini** (gratis) en <https://aistudio.google.com/apikey>. La
+   pegarás en la pantalla de inicio. Si lo prefieres, puedes guardarla en la variable de
+   entorno `GEMINI_API_KEY`.
 4. **Arranca la app:** doble clic en `Iniciar CapturaIA.cmd`, o desde la terminal:
    ```powershell
    uv run capturaia

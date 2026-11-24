@@ -50,8 +50,12 @@ def test_phone_state_versions_and_connection() -> None:
     assert "cards" in full
     assert json.loads(state.snapshot(1)) == {"version": 1}  # el móvil ya lo tiene
     assert state.connected() is True
+    assert state.phone_awake() is None  # el móvil aún no ha dicho nada
+    state.snapshot(1, awake=True)
+    assert state.phone_awake() is True
     now[0] += 5
     assert state.connected() is False
+    assert state.phone_awake() is None  # si no lee, no se sabe
 
 
 def _get(url: str) -> tuple[int, bytes]:
@@ -83,6 +87,10 @@ def test_phone_server_serves_page_and_state() -> None:
             "version": data["version"]
         }
         assert state.connected() is True
+        _get(f"{base}/clave123/state?v=-1&awake=1")
+        assert state.phone_awake() is True
+        _get(f"{base}/clave123/state?v=-1&awake=0")
+        assert state.phone_awake() is False
         assert server.url.endswith(f":{server.port}/clave123/")
     finally:
         server.stop()
@@ -163,3 +171,5 @@ def test_page_reports_wake_lock_state() -> None:
     assert "function fit(" in page  # la letra se ajusta para que quepa la respuesta
     assert "navigator.wakeLock.request" in page
     assert "isSecureContext" in page
+    assert "state.hint" in page  # texto de espera configurable (p. ej. pantalla de inicio)
+    assert "&awake=" in page  # avisa al PC2 de si la pantalla está fija

@@ -28,6 +28,16 @@ class FakeModels:
         self.exc = exc
         self.calls: list[dict[str, Any]] = []
 
+    def list(self) -> Any:
+        if self.exc is not None:
+            raise self.exc
+        return [
+            SimpleNamespace(name="models/gemini-3.8-flash", supported_actions=["generateContent"]),
+            SimpleNamespace(name="models/gemini-3.5-flash-lite", supported_actions=None),
+            SimpleNamespace(name="models/text-embedding-004", supported_actions=["embedContent"]),
+            SimpleNamespace(name="models/gemini-embedding", supported_actions=["embedContent"]),
+        ]
+
     def get(self, *, model: str) -> Any:
         if self.exc is not None:
             raise self.exc
@@ -113,3 +123,10 @@ def test_check_validates_key_and_model() -> None:
         _client(FakeModels(exc=exc), model="m-9").check()
     with pytest.raises(GeminiError, match="No se pudo contactar"):
         _client(FakeModels(exc=TimeoutError("lento"))).check()
+
+
+def test_list_models_keeps_gemini_generators() -> None:
+    assert _client(FakeModels()).list_models() == ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
+    exc = errors.ClientError(403, {"error": {"message": "denied", "status": "PERMISSION_DENIED"}})
+    with pytest.raises(GeminiError, match="API key"):
+        _client(FakeModels(exc=exc)).list_models()
