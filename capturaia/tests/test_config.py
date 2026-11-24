@@ -137,6 +137,8 @@ def test_phone_section(tmp_path: Path) -> None:
     path.write_text("[phone]\nenabled = false\nport = 9000\nfont_size = 30\n", encoding="utf-8")
     phone = load_config(path).phone
     assert (phone.enabled, phone.port, phone.font_size) == (False, 9000, 30)
+    assert phone.usb is True
+    assert phone.adb_path == ""
     path.write_text("[phone]\nport = 80\n", encoding="utf-8")
     with pytest.raises(ConfigError, match="port"):
         load_config(path)

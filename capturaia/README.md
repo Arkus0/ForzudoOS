@@ -161,12 +161,12 @@ sin pantalla.
 
 ```
 Portátil ──HDMI──▶ splitter ──OUT1──▶ ASUS (trabajas aquí, cámara encima, móvil al lado)
-                            └─OUT2──▶ Cam Link ──USB──▶ PC2 (sin monitor) ──wifi de casa──▶ móvil
+                            └─OUT2──▶ Cam Link ──USB──▶ PC2 (sin monitor) ──cable USB o wifi──▶ móvil
 ```
 
-- **Sin apps ni cuentas:** el móvil abre una página que sirve el propio PC2 en tu wifi de casa.
-  Las respuestas no pasan por ningún servidor de fuera. La dirección lleva una clave aleatoria
-  para que otro aparato de la red no pueda leerla.
+- **Sin apps ni cuentas:** el móvil abre en Chrome una página que sirve el propio PC2, por
+  cable o por tu wifi. Las respuestas no pasan por ningún servidor de fuera. La dirección lleva
+  una clave aleatoria para que otro aparato de la red no pueda leerla.
 - **Solo se ve la respuesta**, la última, pensada para el móvil en horizontal. La letra se ajusta
   sola: tan grande como quepa (hasta el máximo que elijas) y, si la respuesta es larga, se
   reduce para que entre entera. Si aun así no cabe, **F10** también pasa página en el móvil.
@@ -180,42 +180,94 @@ Portátil ──HDMI──▶ splitter ──OUT1──▶ ASUS (trabajas aquí,
   capturadora, Gemini no listo o teclas que no funcionan. Si la pantalla puede apagarse, sale
   una nota amarilla pequeña en una esquina. Si todo va bien, no ves nada más que la respuesta.
 
-### Primera vez
+### Conectar el móvil: tres formas
 
-1. En el PC2, abre **Archivo ▸ Conectar el móvil**: sale un código QR y la dirección
-   (`http://IP-del-PC2:8765/…/`).
-   - Para ver el PC2 en esta configuración inicial, conéctalo un momento a la otra entrada de
-     la ASUS (HDMI o DisplayPort) y luego vuelve a la del portátil.
-2. Escanéalo con la cámara del móvil. En Chrome: menú ⋮ ▸ **Añadir a pantalla de inicio**, y
-   la próxima vez la abres con un toque. La dirección no cambia.
-3. Si Windows pregunta si deja a Python acceder a la red, acepta **solo para redes privadas**.
-4. Para que CapturaIA arranque sola con el PC2: Win+R ▸ `shell:startup` y deja ahí un acceso
-   directo a `Iniciar CapturaIA.cmd`.
+| | Dirección en el móvil | ¿IP fija o chrome://flags? | Pantalla siempre encendida |
+|---|---|---|---|
+| **1. Cable USB** (recomendada) | `http://localhost:8765/…` (no cambia nunca) | No | Sí, sola (y además carga el móvil) |
+| **2. Sin cable, emparejado** | `http://localhost:8765/…` (no cambia nunca) | No | Sí, sola |
+| **3. Wifi con la IP del PC2** | `http://192.168.x.x:8765/…` | Sí, las dos | Solo tras el ajuste de Chrome |
 
-### Que la pantalla del móvil no se apague (Pixel 7 / Android)
+Las formas 1 y 2 usan **adb**, una herramienta oficial de Google para conectar el ordenador
+con el móvil. Se instala una vez en el PC2:
 
-La página puede bloquear la pantalla encendida (Wake Lock). Chrome solo lo permite en páginas
-«seguras», así que hay que decirle una vez que la dirección del PC2 lo es:
+1. Descarga «SDK Platform-Tools for Windows» de
+   <https://developer.android.com/tools/releases/platform-tools>.
+2. Descomprime el ZIP **dentro de la carpeta `capturaia`**, de forma que quede
+   `capturaia\platform-tools\adb.exe`. No hay que instalar nada más: CapturaIA lo encuentra
+   sola.
+3. En el móvil, activa las Opciones para desarrolladores (Ajustes ▸ Información del teléfono ▸
+   pulsa 7 veces en «Número de compilación»).
 
-1. En Chrome del móvil, abre `chrome://flags`.
-2. Busca **Insecure origins treated as secure**.
-3. En el cuadro de texto escribe la dirección del PC2 **sin la parte final**, por ejemplo
-   `http://192.168.1.20:8765`. La exacta sale en Archivo ▸ Conectar el móvil.
-4. Cámbialo a **Enabled** y pulsa **Relaunch**.
-5. Abre la página de CapturaIA: abajo debe poner **«Pantalla fija»** en verde. Si pone «Puede
-   apagarse» en amarillo, no está activo.
+#### 1. Por cable USB
 
-Por si acaso, refuérzalo:
-- Deja el móvil **cargando** mientras grabas (el cable va por el cuello de cisne).
-- Activa **«Pantalla activa»** en Opciones para desarrolladores. Para activar esas opciones:
-  Ajustes ▸ Información del teléfono ▸ pulsa 7 veces en «Número de compilación».
-- Si el router le cambia la IP al PC2, la dirección cambia y hay que repetir los pasos 3 y 4
-  (y volver a abrirla). Para evitarlo, reserva una IP fija para el PC2 en el router.
+1. Ajustes ▸ Sistema ▸ Opciones para desarrolladores ▸ activa **Depuración USB**.
+2. Conecta el móvil al PC2 con un cable USB lo bastante largo para llegar al cuello de cisne.
+   La primera vez, acepta en el móvil «¿Permitir depuración USB?» marcando «Permitir siempre».
+3. Abre en Chrome del móvil la dirección `http://localhost:8765/…` que sale en
+   Archivo ▸ Conectar el móvil (o escanea el QR). Añádela a la pantalla de inicio
+   (⋮ ▸ Añadir a pantalla de inicio) y ya no tendrás que volver a escribirla.
 
-Baja además el brillo del móvil: con fondo negro, el Pixel apenas emite luz y no te ilumina la
-cara.
+Cada vez que enchufes el móvil, CapturaIA lo prepara sola en unos segundos. Además, el cable lo
+carga mientras grabas.
 
-En iPhone: Ajustes ▸ Pantalla y brillo ▸ Bloqueo automático ▸ Nunca.
+#### 2. Sin cable, emparejado una vez
+
+Es como emparejar algo por Bluetooth, pero va por tu wifi. El móvil y el PC2 tienen que estar
+en la misma.
+
+1. En el PC2: **Archivo ▸ Emparejar el móvil sin cable**.
+2. En el móvil: Opciones para desarrolladores ▸ **Depuración inalámbrica** ▸ actívala ▸
+   «Vincular dispositivo con código de vinculación».
+3. Escribe en CapturaIA la IP:puerto y el código de 6 cifras que muestra el móvil, y pulsa
+   «Emparejar».
+4. Abre `http://localhost:8765/…` en el móvil, como en la forma 1.
+
+Después, cada vez que el móvil tenga activada la Depuración inalámbrica y esté en tu wifi,
+CapturaIA lo conecta sola. Si Android la desactiva (al cambiar de wifi o al reiniciar), basta
+con volver a activar el interruptor; no hace falta emparejar de nuevo.
+
+Sin cable el móvil no carga, así que ponle su cargador si vas a grabar mucho rato.
+
+> ¿Y por Bluetooth? No compensa. Como red, el PC2 podría acabar saliendo a internet por los
+> datos del móvil y seguirías necesitando una IP. Y una página que hable por Bluetooth también
+> exige que sea «segura». La forma 2 es el equivalente práctico.
+
+#### 3. Por wifi con la IP del PC2 (sin adb)
+
+1. Abre la dirección `http://IP-del-PC2:8765/…` de Archivo ▸ Conectar el móvil, con el móvil
+   en la misma wifi. Si Windows pregunta si deja a Python acceder a la red, acepta **solo
+   para redes privadas**.
+2. Para que la pantalla no se apague, Chrome necesita que marques esa dirección como segura:
+   - En `chrome://flags`, busca **Insecure origins treated as secure**.
+   - Escribe la dirección sin la parte final (p. ej. `http://192.168.1.20:8765`).
+   - Ponlo en **Enabled** y pulsa **Relaunch**.
+
+   Si el router le cambia la IP al PC2, hay que repetirlo. Por eso son mejores las formas 1 y 2.
+
+### Que la pantalla del móvil no se apague
+
+- **Con las formas 1 y 2** la página bloquea la pantalla encendida ella sola. Al tocarla, abajo
+  debe poner **«Pantalla fija»** en verde. Si sale «La pantalla puede apagarse» en amarillo,
+  no está activo.
+- **Refuerzo:** con el móvil cargando, activa **«Pantalla activa»** en Opciones para
+  desarrolladores. Así no se apaga mientras carga.
+- **Brillo:** bájalo. Con fondo negro, el Pixel apenas emite luz y no te ilumina la cara.
+- **iPhone:** Ajustes ▸ Pantalla y brillo ▸ Bloqueo automático ▸ Nunca.
+
+### El PC2 sin monitor
+
+- **Conéctalo a la otra entrada de la ASUS** (HDMI o DisplayPort) y déjalo así. Windows sigue
+  «viendo» un monitor y no hace cosas raras por no tener pantalla. Cuando necesites ver el PC2,
+  cambia la entrada de la ASUS y vuelve después a la del portátil. Si tu monitor no tiene dos
+  entradas, un adaptador «HDMI dummy» (unos 5–8 €) hace lo mismo.
+- **Que CapturaIA arranque sola:** Win+R ▸ `shell:startup` y deja ahí un acceso directo a
+  `Iniciar CapturaIA.cmd`.
+- **El móvil hace de pantalla de estado del PC2.** Si al abrir la página pone «Listo. Pulsa
+  una tecla para preguntar.» y no hay avisos en rojo, todo funciona: capturadora, Gemini y
+  teclas. No hace falta escritorio remoto.
+- **Antes de grabar, haz una pregunta de prueba** con F8 y comprueba que la respuesta llega al
+  móvil.
 
 ### Lanzar las preguntas sin tocar nada visible
 

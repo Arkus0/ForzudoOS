@@ -43,7 +43,7 @@ from capturaia.imaging import qimage_to_jpeg
 from capturaia.phone import PhoneServer, markdown_to_html
 from capturaia.ui.answer_panel import AnswerCard, AnswerPanel
 from capturaia.ui.layout import presenter_split
-from capturaia.ui.phone_dialog import PhoneDialog
+from capturaia.ui.phone_dialog import PairDialog, PhoneDialog
 from capturaia.worker import AskWorker
 
 SourceFactory = Callable[[CaptureConfig, str], FrameSource]
@@ -235,6 +235,9 @@ class MainWindow(QMainWindow):
         self._phone_action = menu.addAction("Conectar el móvil…")
         self._phone_action.triggered.connect(self.show_phone_dialog)
         self._phone_action.setVisible(False)
+        self._pair_action = menu.addAction("Emparejar el móvil sin cable…")
+        self._pair_action.triggered.connect(self.show_pair_dialog)
+        self._pair_action.setVisible(False)
         menu.addSeparator()
         menu.addAction("Salir", self.close)
 
@@ -248,6 +251,9 @@ class MainWindow(QMainWindow):
         self._phone = phone
         self._phone_was_connected = False
         self._phone_page = 0
+        self._usb_base = ""
+        self._usb_status = ""
+        self._adb = ""
         if phone is None:
             return
         self._phone_action.setVisible(True)
@@ -295,9 +301,32 @@ class MainWindow(QMainWindow):
             }
         )
 
+    def enable_usb(self, url_base: str, adb: str = "") -> None:
+        """Hay adb: el móvil puede ir por cable o emparejado sin cable (http://localhost/...)."""
+        self._usb_base = url_base
+        self._adb = adb
+        self._pair_action.setVisible(bool(adb))
+
+    def show_pair_dialog(self) -> None:
+        if self._adb:
+            PairDialog(self._adb, self).exec()
+
+    def set_usb_status(self, message: str, ok: object) -> None:
+        self._usb_status = message
+        if ok is not None:
+            self.notify(message, 0 if ok is False else 10000)
+
+    @property
+    def phone_usb_url(self) -> str:
+        if not self._usb_base or self._phone is None:
+            return ""
+        return f"{self._usb_base}/{self._phone.token}/"
+
     def show_phone_dialog(self) -> None:
         if self._phone is not None:
-            PhoneDialog(self._phone.url, self).exec()
+            PhoneDialog(
+                self._phone.url, self, usb_url=self.phone_usb_url, usb_status=self._usb_status
+            ).exec()
 
     def notify(self, message: str, timeout_ms: int = 6000) -> None:
         self.statusBar().showMessage(message, timeout_ms)

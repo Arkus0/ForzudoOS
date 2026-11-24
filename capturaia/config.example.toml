@@ -119,5 +119,11 @@ scroll_hotkey = "<f10>"
 enabled = true
 # Puerto de la página (cámbialo solo si otro programa ya usa este).
 port = 8765
-# Tamaño de letra inicial en el móvil, en píxeles (luego se ajusta desde el propio móvil).
-font_size = 26
+# Tamaño de letra máximo en el móvil, en píxeles (luego se ajusta desde el propio móvil).
+font_size = 40
+# Móvil por cable USB al PC2 (recomendado): la página se abre como http://localhost, la
+# dirección no cambia nunca y no depende de la wifi. Necesita adb (Android SDK Platform-Tools)
+# y «Depuración USB» activada en el móvil. Si no se encuentra adb, se usa solo la wifi.
+usb = true
+# Ruta de adb.exe. Vacío = buscarlo en el PATH y en la carpeta platform-tools junto a la app.
+adb_path = ""

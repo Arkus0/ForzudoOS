@@ -141,6 +141,9 @@ def test_window_publishes_to_phone(qtbot: Any, tmp_path: Path, config: AppConfig
     alert = json.loads(state.snapshot(None))["alert"]
     assert "móvil" not in alert.lower()
     assert "Teclas: no hay teclas activas" in alert
+    assert window.phone_usb_url == ""  # sin adb no hay dirección por cable
+    window.enable_usb("http://localhost:8765")
+    assert window.phone_usb_url == "http://localhost:8765/tok/"
     window._pool.waitForDone(5000)
 
 

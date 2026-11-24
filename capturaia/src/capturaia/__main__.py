@@ -15,6 +15,8 @@ from capturaia.config import AppConfig, ConfigError, default_config_path, load_c
 
 if TYPE_CHECKING:
     from capturaia.phone import PhoneServer
+    from capturaia.ui.main_window import MainWindow
+    from capturaia.usb_bridge import UsbBridge
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -86,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
 
     phone = _start_phone(config)
     window = MainWindow(config, phone=phone)
+    usb = _start_usb(config, window) if phone is not None else None
     if config.phone.enabled and phone is None:
         window.notify(
             f"No se pudo abrir la página del móvil en el puerto {config.phone.port} "
@@ -118,8 +121,26 @@ def main(argv: list[str] | None = None) -> int:
         return app.exec()
     finally:
         hotkeys.stop()
+        if usb is not None:
+            usb.stop()
         if phone is not None:
             phone.stop()
+
+
+def _start_usb(config: AppConfig, window: MainWindow) -> UsbBridge | None:
+    """Si hay adb, mantiene el móvil accesible por cable como http://localhost."""
+    if not config.phone.usb:
+        return None
+    from capturaia.usb_bridge import UsbBridge, find_adb  # noqa: PLC0415
+
+    adb = find_adb(config.phone.adb_path)
+    if adb is None:
+        return None
+    bridge = UsbBridge(adb, config.phone.port)
+    bridge.status.connect(window.set_usb_status)
+    window.enable_usb(bridge.url_base, adb)
+    bridge.start()
+    return bridge
 
 
 def _start_phone(config: AppConfig) -> PhoneServer | None:

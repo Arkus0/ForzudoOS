@@ -137,8 +137,14 @@ scroll_hotkey = "<f10>"
 enabled = true
 # Puerto de la página (cámbialo solo si otro programa ya usa este).
 port = 8765
-# Tamaño de letra inicial en el móvil, en píxeles (luego se ajusta desde el propio móvil).
-font_size = 26
+# Tamaño de letra máximo en el móvil, en píxeles (luego se ajusta desde el propio móvil).
+font_size = 40
+# Móvil por cable USB al PC2 (recomendado): la página se abre como http://localhost, la
+# dirección no cambia nunca y no depende de la wifi. Necesita adb (Android SDK Platform-Tools)
+# y «Depuración USB» activada en el móvil. Si no se encuentra adb, se usa solo la wifi.
+usb = true
+# Ruta de adb.exe. Vacío = buscarlo en el PATH y en la carpeta platform-tools junto a la app.
+adb_path = ""
 '''
 
 
@@ -205,7 +211,9 @@ class PresenterConfig:
 class PhoneConfig:
     enabled: bool = True
     port: int = 8765
-    font_size: int = 26
+    font_size: int = 40
+    usb: bool = True
+    adb_path: str = ""
 
 
 @dataclass(frozen=True)
@@ -353,7 +361,9 @@ def _phone(section: dict[str, Any]) -> PhoneConfig:
     return PhoneConfig(
         enabled=_bool(section, "enabled"),
         port=_int(section, "port", 1024, 65535),
-        font_size=_int(section, "font_size", 12, 80),
+        font_size=_int(section, "font_size", 12, 90),
+        usb=_bool(section, "usb"),
+        adb_path=_str(section, "adb_path").strip(),
     )
 
 
