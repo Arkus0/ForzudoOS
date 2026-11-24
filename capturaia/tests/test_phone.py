@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 from PySide6.QtCore import QSettings, QThreadPool
+from PySide6.QtWidgets import QLabel
 
 from capturaia.config import AppConfig
 from capturaia.phone import PhoneServer, PhoneState, lan_ip, markdown_to_html
@@ -69,7 +70,7 @@ def test_phone_server_serves_page_and_state() -> None:
         base = f"http://127.0.0.1:{server.port}"
         code, page = _get(f"{base}/clave123/")
         assert code == 200
-        assert b"--font: 30px" in page
+        assert b'load("capturaia-font", 30)' in page
         assert _get(f"{base}/clave123")[0] == 200
         assert _get(f"{base}/otra/")[0] == 404  # sin la clave no se ve nada
         assert _get(f"{base}/")[0] == 404
@@ -122,12 +123,24 @@ def test_window_publishes_to_phone(qtbot: Any, tmp_path: Path, config: AppConfig
     assert card["title"] == "Explícame esto"
     assert card["html"] == "<ul><li><b>Clave</b> uno</li><li>dos</li></ul>"
     assert card["status"].startswith("Listo")
+    assert card["done"] is True
+    assert len(data["cards"]) == 1  # en el móvil, solo la última respuesta
+    assert data["page"] == 0
+    window.handle_action("scroll")  # F10 también pasa página en el móvil
+    window.publish_to_phone()
+    assert json.loads(state.snapshot(None))["page"] == 1
     assert data["health"]["Móvil"] is True
 
     now[0] += 10  # el móvil deja de leer (pantalla apagada)
     window.publish_to_phone()
     assert window.panel.health("Móvil") is False
     assert "móvil" in window.panel.alert_text.lower()
+    # ...pero ese aviso no se manda al propio móvil; los demás sí.
+    window.set_hotkeys_health(False, "no hay teclas activas")
+    window.publish_to_phone()
+    alert = json.loads(state.snapshot(None))["alert"]
+    assert "móvil" not in alert.lower()
+    assert "Teclas: no hay teclas activas" in alert
     window._pool.waitForDone(5000)
 
 
@@ -136,3 +149,14 @@ def test_phone_dialog_has_qr_and_url(qtbot: Any) -> None:
     qtbot.addWidget(dialog)
     assert not dialog.qr.pixmap().isNull()
     assert "192.168.1.20:8765/abc/" in dialog.url.text()
+    texts = [label.text() for label in dialog.findChildren(QLabel)]
+    assert any("<code>http://192.168.1.20:8765</code>" in t for t in texts)  # para chrome://flags
+
+
+def test_page_reports_wake_lock_state() -> None:
+    page = PhoneServer(PhoneState(), "t", 0, 26).page().decode("utf-8")
+    assert 'id="awake"' in page
+    assert "requestFullscreen" in page  # al tocar, pantalla completa
+    assert "function fit(" in page  # la letra se ajusta para que quepa la respuesta
+    assert "navigator.wakeLock.request" in page
+    assert "isSecureContext" in page

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import re
 from datetime import datetime
 from pathlib import Path
@@ -41,6 +42,7 @@ QFrame#card[latest="false"] QLabel { color: #7d838c; }
 """
 HEALTH_COLORS = {True: "#3fb950", False: "#f85149", None: "#8b949e"}
 HEALTH_ORDER = ("Señal", "Gemini", "Teclas")
+_CARD_IDS = itertools.count(1)
 
 _BULLET = re.compile(r"^\s*[-*+]\s+")
 _NUMBERED = re.compile(r"^\s*(\d+)[.)]\s+")
@@ -78,6 +80,7 @@ class AnswerCard(QFrame):
         self.done = False
         self._error = False
         self.title_plain = title
+        self.uid = next(_CARD_IDS)
         self._compact = False
         self._done_info: tuple[float, Path | None] | None = None
 
@@ -290,6 +293,9 @@ class AnswerPanel(QWidget):
     @property
     def alert_text(self) -> str:
         return self._alert.text() if self._alerts else ""
+
+    def alerts_except(self, *keys: str) -> str:
+        return "\n".join(text for key, text in self._alerts.items() if key not in keys)
 
     def set_hint(self, hint: str) -> None:
         self._empty.setText(hint)

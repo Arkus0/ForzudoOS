@@ -157,7 +157,7 @@ En vez del segundo monitor, puedes leer las respuestas en el **móvil**, puesto 
 cisne pegado a tu monitor, casi en la línea de la cámara. El PC2 se queda debajo de la mesa,
 sin pantalla.
 
-<img src="docs/movil.png" alt="Respuestas en el móvil" width="300">
+![Respuesta en el móvil, en horizontal](docs/movil-horizontal.png)
 
 ```
 Portátil ──HDMI──▶ splitter ──OUT1──▶ ASUS (trabajas aquí, cámara encima, móvil al lado)
@@ -167,12 +167,18 @@ Portátil ──HDMI──▶ splitter ──OUT1──▶ ASUS (trabajas aquí,
 - **Sin apps ni cuentas:** el móvil abre una página que sirve el propio PC2 en tu wifi de casa.
   Las respuestas no pasan por ningún servidor de fuera. La dirección lleva una clave aleatoria
   para que otro aparato de la red no pueda leerla.
-- **Se actualiza sola** mientras Gemini escribe. La última respuesta sale arriba en grande y las
-  anteriores, atenuadas debajo.
-- **Fondo negro puro y texto gris suave.** Con los botones de abajo cambias el tamaño de letra
-  (A−/A+) y el brillo del texto (☀−/☀+); el móvil lo recuerda.
-- **Si se corta,** el móvil muestra «Sin conexión con CapturaIA» en rojo, y en el PC2 el
-  indicador **Móvil** se pone en rojo.
+- **Solo se ve la respuesta**, la última, pensada para el móvil en horizontal. La letra se ajusta
+  sola: tan grande como quepa (hasta el máximo que elijas) y, si la respuesta es larga, se
+  reduce para que entre entera. Si aun así no cabe, **F10** también pasa página en el móvil.
+- **Fondo negro puro y texto gris suave.**
+- **Al tocar la pantalla:**
+  - El primer toque la pone a pantalla completa (sin la barra de Chrome) y bloquea la pantalla
+    encendida.
+  - Cada toque muestra unos segundos los controles: tamaño máximo de letra (A−/A+), brillo del
+    texto (☀−/☀+), el estado de la pantalla y los indicadores. El móvil recuerda lo que elijas.
+- **Avisos solo si algo falla,** en rojo arriba: sin conexión con el PC2, sin señal de la
+  capturadora, Gemini no listo o teclas que no funcionan. Si la pantalla puede apagarse, sale
+  una nota amarilla pequeña en una esquina. Si todo va bien, no ves nada más que la respuesta.
 
 ### Primera vez
 
@@ -188,12 +194,26 @@ Portátil ──HDMI──▶ splitter ──OUT1──▶ ASUS (trabajas aquí,
 
 ### Que la pantalla del móvil no se apague (Pixel 7 / Android)
 
-1. Deja el móvil **cargando** mientras grabas (el cable va por el cuello de cisne).
-2. Activa las Opciones para desarrolladores: Ajustes ▸ Información del teléfono ▸ pulsa 7 veces
-   en «Número de compilación».
-3. En Ajustes ▸ Sistema ▸ Opciones para desarrolladores, activa **«Pantalla activa»**: la
-   pantalla no se apaga mientras carga.
-4. Baja el brillo del móvil. Con fondo negro, el Pixel apenas emite luz y no te ilumina la cara.
+La página puede bloquear la pantalla encendida (Wake Lock). Chrome solo lo permite en páginas
+«seguras», así que hay que decirle una vez que la dirección del PC2 lo es:
+
+1. En Chrome del móvil, abre `chrome://flags`.
+2. Busca **Insecure origins treated as secure**.
+3. En el cuadro de texto escribe la dirección del PC2 **sin la parte final**, por ejemplo
+   `http://192.168.1.20:8765`. La exacta sale en Archivo ▸ Conectar el móvil.
+4. Cámbialo a **Enabled** y pulsa **Relaunch**.
+5. Abre la página de CapturaIA: abajo debe poner **«Pantalla fija»** en verde. Si pone «Puede
+   apagarse» en amarillo, no está activo.
+
+Por si acaso, refuérzalo:
+- Deja el móvil **cargando** mientras grabas (el cable va por el cuello de cisne).
+- Activa **«Pantalla activa»** en Opciones para desarrolladores. Para activar esas opciones:
+  Ajustes ▸ Información del teléfono ▸ pulsa 7 veces en «Número de compilación».
+- Si el router le cambia la IP al PC2, la dirección cambia y hay que repetir los pasos 3 y 4
+  (y volver a abrirla). Para evitarlo, reserva una IP fija para el PC2 en el router.
+
+Baja además el brillo del móvil: con fondo negro, el Pixel apenas emite luz y no te ilumina la
+cara.
 
 En iPhone: Ajustes ▸ Pantalla y brillo ▸ Bloqueo automático ▸ Nunca.
 

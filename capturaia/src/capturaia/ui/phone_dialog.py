@@ -3,23 +3,28 @@
 from __future__ import annotations
 
 import io
+from urllib.parse import urlsplit
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout, QWidget
 
-INSTRUCTIONS = (
-    "<b>1.</b> Conecta el móvil a la misma wifi que este PC.<br>"
-    "<b>2.</b> Escanea el código con la cámara del móvil (o escribe la dirección).<br>"
-    "<b>3.</b> Para que no se apague la pantalla: deja el móvil cargando y activa "
-    "«Pantalla activa» en Opciones para desarrolladores (Android) o pon el Bloqueo "
-    "automático en «Nunca» (iPhone).<br>"
-    "<b>4.</b> Baja el brillo del móvil: el fondo es negro y el texto se lee igual. "
-    "Desde la propia página puedes cambiar el tamaño de letra (A−/A+) y el brillo del texto "
-    "(☀−/☀+).<br><br>"
-    "La primera vez, Windows puede preguntar si permite el acceso de red a Python: "
-    "acepta solo para <b>redes privadas</b>."
-)
+
+def instructions(origin: str) -> str:
+    return (
+        "<b>1.</b> Conecta el móvil a la misma wifi que este PC.<br>"
+        "<b>2.</b> Escanea el código con la cámara del móvil (o escribe la dirección).<br>"
+        "<b>3.</b> Para que no se apague la pantalla (Chrome en Android): abre "
+        "<code>chrome://flags</code>, busca <i>Insecure origins treated as secure</i>, escribe "
+        f"<code>{origin}</code>, ponlo en <i>Enabled</i> y pulsa <i>Relaunch</i>. Abajo en la "
+        "página verás «Pantalla fija» en verde. Por si acaso, deja también el móvil cargando con "
+        "«Pantalla activa» (Opciones para desarrolladores).<br>"
+        "<b>4.</b> Pon el móvil en horizontal y toca la pantalla una vez: pasa a pantalla "
+        "completa. Cada toque muestra unos segundos los controles de letra (A−/A+) y brillo "
+        "(☀−/☀+). Baja también el brillo del móvil: el fondo es negro.<br><br>"
+        "La primera vez, Windows puede preguntar si permite el acceso de red a Python: "
+        "acepta solo para <b>redes privadas</b>."
+    )
 
 
 def qr_pixmap(text: str, scale: int = 8) -> QPixmap:
@@ -52,7 +57,8 @@ class PhoneDialog(QDialog):
         self.url.setOpenExternalLinks(True)
         layout.addWidget(self.url)
 
-        help_text = QLabel(INSTRUCTIONS)
+        parts = urlsplit(url)
+        help_text = QLabel(instructions(f"{parts.scheme}://{parts.netloc}"))
         help_text.setWordWrap(True)
         help_text.setMaximumWidth(520)
         layout.addWidget(help_text)

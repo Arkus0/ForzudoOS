@@ -247,6 +247,7 @@ class MainWindow(QMainWindow):
     def _setup_phone(self, phone: PhoneServer | None) -> None:
         self._phone = phone
         self._phone_was_connected = False
+        self._phone_page = 0
         if phone is None:
             return
         self._phone_action.setVisible(True)
@@ -272,19 +273,26 @@ class MainWindow(QMainWindow):
             )
             self.panel.set_alert("phone", "El móvil ha dejado de leer las respuestas.")
         cards = []
-        for card in self.panel.cards[:3]:
+        for card in self.panel.cards[:1]:  # en el móvil solo cabe (y solo hace falta) la última
             body = html.escape(card.body.text()) if card.is_error else markdown_to_html(card.text)
             cards.append(
                 {
+                    "id": card.uid,
                     "title": card.title_plain,
                     "html": body,
                     "status": card.status.text(),
                     "error": card.is_error,
+                    "done": card.done,
                 }
             )
-        alerts = self.panel.alert_text
         self._phone.state.publish(
-            {"cards": cards, "health": self.panel.health_states(), "alert": alerts}
+            {
+                "cards": cards,
+                "health": self.panel.health_states(),
+                # El aviso de "el móvil no lee" no tiene sentido mostrarlo en el propio móvil.
+                "alert": self.panel.alerts_except("phone"),
+                "page": self._phone_page,
+            }
         )
 
     def show_phone_dialog(self) -> None:
@@ -441,6 +449,7 @@ class MainWindow(QMainWindow):
 
     def set_hotkeys_health(self, ok: bool, detail: str) -> None:
         self.panel.set_health("Teclas", ok, detail)
+        self.panel.set_alert("hotkeys", "" if ok else f"Teclas: {detail}")
 
     # ------------------------------------------------------------------ modo presentación
     def handle_action(self, name: str) -> None:
@@ -449,6 +458,7 @@ class MainWindow(QMainWindow):
             self.toggle_presenter_mode()
         elif name == "scroll":
             self.panel.scroll_page()
+            self._phone_page += 1  # el móvil también pasa página
 
     def toggle_presenter_mode(self) -> None:
         self.set_presenter_mode(not self.presenter_mode)

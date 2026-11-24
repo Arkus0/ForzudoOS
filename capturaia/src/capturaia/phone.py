@@ -200,82 +200,136 @@ PAGE = """<!doctype html>
 <meta name="theme-color" content="#000000">
 <title>CapturaIA</title>
 <style>
-  :root { --font: __FONT_PX__px; --dim: 0.8; }
-  html, body { margin: 0; background: #000; color: #d6d6d6; height: 100%; }
-  body { font: var(--font)/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-         -webkit-text-size-adjust: 100%; }
-  main { padding: 12px 14px 64px; opacity: var(--dim); }
-  #alert { display: none; background: #7a1d1d; color: #fff; font-weight: 600;
-           padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.75em; }
-  .card { border-left: 4px solid #2f6fb3; padding: 4px 0 4px 12px; margin-bottom: 18px; }
-  .card.old { border-left-color: #333; opacity: 0.45; font-size: 0.8em; }
-  .title { color: #7fb4ea; font-size: 0.65em; font-weight: 600; }
-  .status { color: #8a8f96; font-size: 0.5em; margin-top: 4px; }
-  .error .body { color: #ff8a8a; }
-  .body p { margin: 0.2em 0 0.5em; }
-  .body ul, .body ol { margin: 0.2em 0 0.5em; padding-left: 1.1em; }
-  .body li { margin-bottom: 0.35em; }
-  .body b { color: #fff; }
-  #empty { color: #6f747b; font-size: 0.7em; }
-  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 8px;
-         align-items: center; padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-         background: #000; opacity: 0.5; font-size: 14px; }
+  :root { --dim: 0.8; }
+  html, body { margin: 0; background: #000; color: #d6d6d6; height: 100%; overflow: hidden; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         -webkit-text-size-adjust: 100%; user-select: none; }
+  /* Solo la respuesta: ocupa toda la pantalla y el texto se ajusta para caber. */
+  #answer { position: fixed; inset: 0; box-sizing: border-box; overflow-y: auto;
+            padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+                     max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+            line-height: 1.3; opacity: var(--dim); scrollbar-width: none; scroll-behavior: smooth; }
+  #answer::-webkit-scrollbar { display: none; }
+  #answer p { margin: 0 0 0.45em; }
+  #answer ul, #answer ol { margin: 0 0 0.45em; padding-left: 1.1em; }
+  #answer li { margin-bottom: 0.3em; }
+  #answer b { color: #fff; }
+  #answer.error { color: #ff8a8a; }
+  #answer .wait, #answer .hint { color: #6f747b; }
+  /* Avisos: solo aparecen si algo falla. */
+  #warnings { position: fixed; top: 0; left: 0; right: 0; z-index: 3; }
+  #warnings div { display: none; background: #7a1d1d; color: #fff; font: 600 15px system-ui;
+                  padding: 6px 12px; text-align: center; }
+  #awake-warn { position: fixed; right: 8px; bottom: 6px; z-index: 2; display: none;
+                color: #d29922; font: 13px system-ui; opacity: 0.8; }
+  /* Controles: aparecen unos segundos al tocar la pantalla. */
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; display: none; gap: 8px;
+         flex-wrap: wrap; row-gap: 6px; align-items: center; background: rgba(0, 0, 0, 0.92);
+         padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); font-size: 14px;
+         color: #8a8f96; border-top: 1px solid #222; }
+  #bar.show { display: flex; }
   #bar button { background: #111; color: #9a9a9a; border: 1px solid #333; border-radius: 6px;
                 font-size: 15px; padding: 6px 10px; white-space: nowrap; }
-  #health { margin-left: auto; color: #8a8f96; }
+  #awake { white-space: nowrap; }
+  #health { margin-left: auto; white-space: nowrap; }
   .dot { font-size: 16px; }
-  #offline { display: none; position: fixed; top: 0; left: 0; right: 0; background: #7a1d1d;
-             color: #fff; text-align: center; padding: 8px; font: 600 16px system-ui; }
 </style>
 </head>
 <body>
-<div id="offline">Sin conexión con CapturaIA (¿PC2 encendido y misma wifi?)</div>
-<main>
+<div id="warnings">
+  <div id="offline">Sin conexión con CapturaIA (¿PC2 encendido y misma wifi?)</div>
   <div id="alert"></div>
-  <div id="cards"><p id="empty">Esperando la primera pregunta…</p></div>
-</main>
+</div>
+<main id="answer"><p class="hint">Listo. Pulsa una tecla para preguntar.</p></main>
+<div id="awake-warn">La pantalla puede apagarse</div>
 <div id="bar">
   <button id="fminus" aria-label="Letra más pequeña">A−</button>
   <button id="fplus" aria-label="Letra más grande">A+</button>
   <button id="dminus" aria-label="Menos brillo">☀−</button>
   <button id="dplus" aria-label="Más brillo">☀+</button>
+  <span id="awake"></span>
   <span id="health"></span>
 </div>
 <script>
 (function () {
   var base = location.pathname.replace(/\\/$/, "");
-  var version = -1, failures = 0;
+  var answer = document.getElementById("answer");
+  var bar = document.getElementById("bar");
   var root = document.documentElement;
+  var version = -1, failures = 0, cardId = null, page = null, size = 0, barTimer = null;
+  var MIN_FONT = 16;
+
   function load(key, fallback) {
     try { var v = localStorage.getItem(key); return v === null ? fallback : parseFloat(v); }
     catch (e) { return fallback; }
   }
   function save(key, value) { try { localStorage.setItem(key, String(value)); } catch (e) {} }
-  var font = load("capturaia-font", __FONT_PX__), dim = load("capturaia-dim", 0.8);
-  function apply() {
-    root.style.setProperty("--font", font + "px");
-    root.style.setProperty("--dim", dim);
-  }
-  apply();
-  function step(kind, delta) {
-    if (kind === "font") { font = Math.max(14, Math.min(60, font + delta)); save("capturaia-font", font); }
-    else { dim = Math.max(0.2, Math.min(1, Math.round((dim + delta) * 10) / 10)); save("capturaia-dim", dim); }
-    apply();
-  }
-  document.getElementById("fminus").onclick = function () { step("font", -2); };
-  document.getElementById("fplus").onclick = function () { step("font", 2); };
-  document.getElementById("dminus").onclick = function () { step("dim", -0.1); };
-  document.getElementById("dplus").onclick = function () { step("dim", 0.1); };
+  var maxFont = load("capturaia-font", __FONT_PX__), dim = load("capturaia-dim", 0.8);
+  root.style.setProperty("--dim", dim);
 
-  // Intento de mantener la pantalla encendida (solo funciona en algunos navegadores).
-  var lock = null;
-  function keepAwake() {
-    if (navigator.wakeLock && document.visibilityState === "visible") {
-      navigator.wakeLock.request("screen").then(function (l) { lock = l; }).catch(function () {});
+  // Letra lo más grande posible (hasta el máximo elegido) sin que la respuesta se salga.
+  // Durante una misma respuesta solo se reduce, para que no "baile" mientras se escribe.
+  function fit(reset) {
+    if (reset || !size) { size = maxFont; }
+    answer.style.fontSize = size + "px";
+    while (answer.scrollHeight > answer.clientHeight + 1 && size > MIN_FONT) {
+      size -= 1;
+      answer.style.fontSize = size + "px";
     }
+  }
+  window.addEventListener("resize", function () { fit(true); });
+
+  function step(kind, delta) {
+    if (kind === "font") { maxFont = Math.max(MIN_FONT, Math.min(90, maxFont + delta)); save("capturaia-font", maxFont); fit(true); }
+    else { dim = Math.max(0.2, Math.min(1, Math.round((dim + delta) * 10) / 10)); save("capturaia-dim", dim); root.style.setProperty("--dim", dim); }
+  }
+  function button(id, kind, delta) {
+    document.getElementById(id).addEventListener("click", function (e) { e.stopPropagation(); step(kind, delta); showBar(); });
+  }
+  button("fminus", "font", -2); button("fplus", "font", 2);
+  button("dminus", "dim", -0.1); button("dplus", "dim", 0.1);
+
+  function showBar() {
+    bar.classList.add("show");
+    clearTimeout(barTimer);
+    barTimer = setTimeout(function () { bar.classList.remove("show"); }, 4000);
+  }
+
+  // Mantener la pantalla encendida (Screen Wake Lock). Chrome solo lo permite en páginas
+  // seguras: https, localhost o una dirección marcada como segura en chrome://flags.
+  var lock = null, awake = document.getElementById("awake"), awakeWarn = document.getElementById("awake-warn");
+  function showAwake(ok, why) {
+    awake.textContent = ok ? "Pantalla fija" : "Puede apagarse";
+    awake.style.color = ok ? "#3fb950" : "#d29922";
+    awake.title = why;
+    awakeWarn.style.display = ok ? "none" : "block";
+  }
+  function keepAwake() {
+    if (!window.isSecureContext || !navigator.wakeLock) {
+      showAwake(false, "Chrome no permite bloquear la pantalla en esta dirección (ver README)");
+      return;
+    }
+    if (document.visibilityState !== "visible" || lock) { return; }
+    navigator.wakeLock.request("screen").then(function (l) {
+      lock = l;
+      showAwake(true, "La pantalla no se apagará mientras esta página esté abierta");
+      l.addEventListener("release", function () {
+        lock = null;
+        showAwake(false, "Se ha soltado el bloqueo; se vuelve a pedir al volver a la página");
+      });
+    }).catch(function (e) { showAwake(false, "No se pudo bloquear: " + e.name); });
   }
   document.addEventListener("visibilitychange", keepAwake);
   keepAwake();
+
+  // Al tocar: pantalla completa (sin la barra de Chrome) y controles unos segundos.
+  document.addEventListener("click", function () {
+    keepAwake();
+    if (!document.fullscreenElement && root.requestFullscreen) {
+      root.requestFullscreen({ navigationUI: "hide" }).catch(function () {});
+    }
+    showBar();
+  });
 
   var colors = { "true": "#3fb950", "false": "#f85149", "null": "#8b949e" };
   function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
@@ -283,14 +337,26 @@ PAGE = """<!doctype html>
     var alertBox = document.getElementById("alert");
     alertBox.textContent = state.alert || "";
     alertBox.style.display = state.alert ? "block" : "none";
-    var html = "";
-    (state.cards || []).forEach(function (c, i) {
-      html += '<div class="card' + (i ? " old" : "") + (c.error ? " error" : "") + '">' +
-        '<div class="title">' + esc(c.title) + '</div>' +
-        '<div class="body">' + c.html + '</div>' +
-        '<div class="status">' + esc(c.status) + '</div></div>';
-    });
-    document.getElementById("cards").innerHTML = html || '<p id="empty">Esperando la primera pregunta…</p>';
+
+    var card = (state.cards || [])[0];
+    var isNew = !card || card.id !== cardId;
+    if (!card) {
+      answer.className = "";
+      answer.innerHTML = '<p class="hint">Listo. Pulsa una tecla para preguntar.</p>';
+    } else {
+      answer.className = card.error ? "error" : "";
+      answer.innerHTML = card.html || '<p class="wait">Pensando…</p>';
+      cardId = card.id;
+    }
+    if (isNew) { answer.scrollTop = 0; }
+    fit(isNew);
+
+    if (page !== null && state.page !== page) {  // F10: pasar página (al final, vuelve arriba)
+      if (answer.scrollTop + answer.clientHeight >= answer.scrollHeight - 4) { answer.scrollTop = 0; }
+      else { answer.scrollTop += answer.clientHeight * 0.85; }
+    }
+    page = state.page;
+
     var h = "";
     Object.keys(state.health || {}).forEach(function (name) {
       h += '<span style="white-space:nowrap"><span class="dot" style="color:' +
