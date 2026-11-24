@@ -1,5 +1,7 @@
 # CapturaIA
 
+> **¿Primera vez? Empieza por la [Guía rápida](GUIA-RAPIDA.md):** tu montaje paso a paso, la lista de cada día de grabación y qué hacer si algo falla.
+
 Pulsas una tecla, la app coge el frame actual de la **capturadora**, se lo manda a **Gemini**
 con una pregunta prefijada y la respuesta aparece en un **panel lateral**.
 
