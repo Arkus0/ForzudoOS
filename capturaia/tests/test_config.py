@@ -8,6 +8,7 @@ from capturaia.config import (
     DEFAULT_CONFIG_TEXT,
     ConfigError,
     GeminiConfig,
+    PresenterConfig,
     default_config_path,
     load_config,
 )
@@ -21,7 +22,8 @@ def test_creates_default_file(tmp_path: Path) -> None:
     assert config.capture.backend == "qt"
     assert config.gemini.model
     assert config.gemini.thinking_level == "low"
-    assert [p.hotkey for p in config.presets] == ["<f8>", "<f9>"]
+    assert [p.hotkey for p in config.presets] == ["<f8>", "<f9>", "<f7>"]
+    assert config.presenter == PresenterConfig()
     assert config.history.enabled
     assert config.history.folder == path.parent / "capturas"
 
@@ -32,7 +34,8 @@ def test_partial_file_uses_defaults(tmp_path: Path) -> None:
     config = load_config(path)
     assert config.gemini.model == "otro-modelo"
     assert config.capture.width == 1920
-    assert len(config.presets) == 2
+    assert len(config.presets) == 3
+    assert config.presenter.side == "right"
 
 
 def test_custom_presets_and_history_folder(tmp_path: Path) -> None:
@@ -62,6 +65,12 @@ def test_custom_presets_and_history_folder(tmp_path: Path) -> None:
         ('[[presets]]\nname = "Sin prompt"\n', "prompt"),
         ('[history]\nenabled = "si"\n', "enabled"),
         ("esto no es toml", "sintaxis"),
+        ('[presenter]\nside = "arriba"\n', "side"),
+        ("[presenter]\nmin_strip_width = 10\n", "min_strip_width"),
+        ("[presenter]\nfont_size = 0\n", "font_size"),
+        ("[presenter]\nscreen = -1\n", "screen"),
+        ('[presenter]\nstart = "si"\n', "start"),
+        ("[presenter]\ntoggle_hotkey = 12\n", "toggle_hotkey"),
     ],
 )
 def test_invalid_values(tmp_path: Path, text: str, fragment: str) -> None:
@@ -93,3 +102,22 @@ def test_api_key_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_config_path_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("CAPTURAIA_CONFIG", str(tmp_path / "x.toml"))
     assert default_config_path() == tmp_path / "x.toml"
+
+
+def test_presenter_section(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text(
+        '[presenter]\nstart = true\nscreen = 1\nside = "LEFT"\nmin_strip_width = 500\n'
+        'font_size = 28\ntoggle_hotkey = "<F11>"\nscroll_hotkey = ""\n',
+        encoding="utf-8",
+    )
+    presenter = load_config(path).presenter
+    assert presenter == PresenterConfig(
+        start=True,
+        screen=1,
+        side="left",
+        min_strip_width=500,
+        font_size=28,
+        toggle_hotkey="<f11>",
+        scroll_hotkey="",
+    )

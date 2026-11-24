@@ -8,7 +8,7 @@ Aquí cada tecla se normaliza a un nombre ("ctrl", "f8", "g"...) usando también
 from __future__ import annotations
 
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from types import ModuleType
 from typing import Any
 
@@ -16,6 +16,10 @@ from PySide6.QtCore import QObject, Signal
 
 from capturaia.config import Preset
 
+ACTION_LABELS = {
+    "presenter": "«Modo presentación»",
+    "scroll": "«Pasar página»",
+}
 MODIFIERS = frozenset({"ctrl", "alt", "shift", "cmd"})
 MODIFIER_ALIASES = {
     "control": "ctrl",
@@ -120,23 +124,31 @@ class HotkeyMatcher:
 
 
 class HotkeyBridge(QObject):
-    """Escucha las teclas de los presets y emite `triggered(indice_preset)` en el hilo de Qt."""
+    """Escucha las teclas globales y avisa en el hilo de Qt.
+
+    - `triggered(indice_preset)` para las preguntas prefijadas.
+    - `action(nombre)` para el resto de acciones (p. ej. "presenter", "scroll").
+    """
 
     triggered = Signal(int)
+    action = Signal(str)
 
     def __init__(
         self,
         presets: Sequence[Preset],
         parent: QObject | None = None,
         *,
+        actions: Mapping[str, str] | None = None,
         keyboard_module: ModuleType | Any = None,
     ) -> None:
         super().__init__(parent)
         self._presets = list(presets)
+        self._actions = dict(actions or {})
         self._keyboard = keyboard_module
         self._listener: Any = None
         self._matcher: HotkeyMatcher | None = None
-        self.active: dict[str, int] = {}
+        self._targets: list[int | str] = []  # índice de preset o nombre de acción
+        self.active: dict[str, int | str] = {}
 
     def start(self) -> list[str]:
         """Arranca la escucha y devuelve avisos para el usuario (vacío si todo va bien)."""
@@ -147,24 +159,33 @@ class HotkeyBridge(QObject):
             except Exception as exc:  # p. ej. Linux sin servidor gráfico
                 return [f"Teclas globales no disponibles ({exc}). Usa el botón «Preguntar»."]
 
+        entries: list[tuple[str, str, int | str]] = [
+            (preset.hotkey, f"«{preset.name}»", index) for index, preset in enumerate(self._presets)
+        ]
+        entries += [
+            (hotkey, ACTION_LABELS.get(name, name), name) for name, hotkey in self._actions.items()
+        ]
+
         warnings: list[str] = []
         combos: dict[frozenset[str], int] = {}
-        for index, preset in enumerate(self._presets):
-            if not preset.hotkey:
+        labels: dict[frozenset[str], str] = {}
+        for hotkey, label, target in entries:
+            if not hotkey:
                 continue
             try:
-                combo = parse_hotkey(preset.hotkey)
+                combo = parse_hotkey(hotkey)
             except ValueError as exc:
-                warnings.append(f"Tecla no válida en «{preset.name}» ({preset.hotkey}): {exc}")
+                warnings.append(f"Tecla no válida en {label} ({hotkey}): {exc}")
                 continue
             if combo in combos:
-                other = self._presets[combos[combo]].name
                 warnings.append(
-                    f"La tecla {preset.hotkey} ya la usa «{other}»; ignorada en «{preset.name}»."
+                    f"La tecla {hotkey} ya la usa {labels[combo]}; ignorada en {label}."
                 )
                 continue
-            combos[combo] = index
-            self.active[preset.hotkey] = index
+            combos[combo] = len(self._targets)
+            labels[combo] = label
+            self._targets.append(target)
+            self.active[hotkey] = target
 
         if combos:
             self._matcher = HotkeyMatcher(combos)
@@ -178,9 +199,14 @@ class HotkeyBridge(QObject):
     def _on_press(self, key: Any) -> None:
         if self._matcher is None:
             return
-        index = self._matcher.press(key_token(key))
-        if index is not None:
-            self.triggered.emit(index)
+        found = self._matcher.press(key_token(key))
+        if found is None:
+            return
+        target = self._targets[found]
+        if isinstance(target, str):
+            self.action.emit(target)
+        else:
+            self.triggered.emit(target)
 
     def _on_release(self, key: Any) -> None:
         if self._matcher is not None:

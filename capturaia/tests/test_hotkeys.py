@@ -175,3 +175,29 @@ def test_hotkey_bridge_without_backend(qapp: object, monkeypatch: pytest.MonkeyP
 )
 def test_pretty_hotkey(raw: str, pretty: str) -> None:
     assert pretty_hotkey(raw) == pretty
+
+
+def test_hotkey_bridge_actions(qapp: object) -> None:
+    bridge = HotkeyBridge(
+        [Preset("A", "pa", "<f8>"), Preset("B", "pb", "<f10>")],
+        actions={"presenter": "<f12>", "scroll": "<f10>", "otra": "<f99>"},
+        keyboard_module=FAKE_KEYBOARD,
+    )
+    presets: list[int] = []
+    actions: list[str] = []
+    bridge.triggered.connect(presets.append)
+    bridge.action.connect(actions.append)
+    warnings = bridge.start()
+    assert len(warnings) == 2
+    assert "ya la usa «B»" in warnings[0]
+    assert "«Pasar página»" in warnings[0]
+    assert "no válida en otra" in warnings[1]
+    assert bridge.active == {"<f8>": 0, "<f10>": 1, "<f12>": "presenter"}
+
+    listener = FakeListener.instances[-1]
+    for name in ("f12", "f8", "f10"):
+        listener.on_press(named(name))
+        listener.on_release(named(name))
+    assert actions == ["presenter"]
+    assert presets == [0, 1]
+    bridge.stop()

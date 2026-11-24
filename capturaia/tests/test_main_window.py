@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 import pytest
-from PySide6.QtCore import QSettings, QThreadPool
+from PySide6.QtCore import QSettings, Qt, QThreadPool
 
 from capturaia.config import AppConfig
 from capturaia.gemini import GeminiError
 from capturaia.history import History
+from capturaia.ui.layout import presenter_split
 from capturaia.ui.main_window import MainWindow
 
 
@@ -163,4 +165,83 @@ def test_local_shortcuts_registered(window_factory: Any) -> None:
     window = window_factory(FakeAsker())
     window.enable_local_shortcuts()
     keys = sorted(s.key().toString() for s in window._shortcuts)
-    assert keys == ["F8", "F9"]
+    assert keys == ["F10", "F12", "F7", "F8", "F9"]
+
+
+def _presenter_config(config: AppConfig, **changes: Any) -> AppConfig:
+    return replace(config, presenter=replace(config.presenter, screen=0, **changes))
+
+
+@pytest.mark.parametrize("side", ["right", "left"])
+def test_presenter_mode_layout_and_exit(
+    qtbot: Any, tmp_path: Path, config: AppConfig, side: str
+) -> None:
+    settings = QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat)
+    cfg = _presenter_config(config, side=side, min_strip_width=200, font_size=26)
+    window = MainWindow(cfg, asker_factory=FakeAsker, settings=settings)
+    qtbot.addWidget(window)
+    window.show()
+    normal_sizes = window._splitter.sizes()
+
+    window.handle_action("presenter")
+    assert window.presenter_mode
+    assert window.isFullScreen()
+    assert not window.menuBar().isVisible()
+    assert not window.statusBar().isVisible()
+    assert window._splitter.handleWidth() == 0
+    assert window.cursor().shape() == Qt.CursorShape.BlankCursor
+    assert "F8 Explícame esto" in window.panel._empty.text()
+
+    area = window._splitter.size()
+    frame = window._source.frame_size()
+    video_w, strip_w = presenter_split(
+        area.width(), area.height(), frame.width(), frame.height(), 200
+    )
+    expected = [video_w, strip_w] if side == "right" else [strip_w, video_w]
+    assert window._splitter.sizes() == expected
+    first = window._splitter.widget(0)
+    assert (first is window.panel) == (side == "left")
+
+    # Las respuestas nuevas salen con letra grande y sin miniatura.
+    window.ask(0)
+    card = window.panel.cards[0]
+    qtbot.waitUntil(lambda: card.done, timeout=5000)
+    assert card.body.font().pointSizeF() == 26
+    assert card.thumbnail.isHidden()
+    assert card.property("latest")
+    # La tarjeta nunca se sale de la franja (antes la línea de estado la ensanchaba).
+    qtbot.waitUntil(lambda: card.width() <= window.panel._scroll.viewport().width(), timeout=2000)
+    assert "guardado" not in card.status.text()
+
+    window._exit_shortcut.activated.emit()  # Esc
+    assert not window.presenter_mode
+    assert not window.isFullScreen()
+    assert window.menuBar().isVisible()
+    assert window._splitter.widget(0) is window._preview_box
+    # Se recupera el reparto normal (en proporción: la geometría puede ajustarse a la pantalla).
+    sizes = window._splitter.sizes()
+    assert sizes[0] / sum(sizes) == pytest.approx(normal_sizes[0] / sum(normal_sizes), abs=0.02)
+    assert not card.thumbnail.isHidden()
+    window._pool.waitForDone(5000)
+
+
+def test_presenter_scroll_action(window_factory: Any, qtbot: Any) -> None:
+    window = window_factory(FakeAsker(pieces=["- línea\n" * 200]))
+    window.show()
+    window.ask(0)
+    qtbot.waitUntil(lambda: window.pending_requests == 0, timeout=5000)
+    bar = window.panel._scroll.verticalScrollBar()
+    qtbot.waitUntil(lambda: bar.maximum() > 0, timeout=5000)
+    window.handle_action("scroll")
+    assert bar.value() > 0
+    bar.setValue(bar.maximum())
+    window.handle_action("scroll")  # al final vuelve arriba
+    assert bar.value() == 0
+    window.handle_action("desconocida")  # no hace nada
+
+
+def test_status_shows_measured_fps(window_factory: Any) -> None:
+    window = window_factory(FakeAsker())
+    window._source.measured_fps = lambda: 59.94
+    window._refresh_stats()
+    assert window._source_label.text().endswith("recibiendo 59.9 fps")

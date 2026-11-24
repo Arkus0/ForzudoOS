@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from PySide6.QtCore import QCameraPermission, QCoreApplication, Qt
+from PySide6.QtCore import QCameraPermission, QCoreApplication, QSize, Qt
 from PySide6.QtGui import QImage
 from PySide6.QtMultimedia import (
     QCamera,
@@ -18,7 +18,7 @@ from PySide6.QtMultimedia import (
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QWidget
 
-from capturaia.capture.base import FrameSource, match_device
+from capturaia.capture.base import FpsMeter, FrameSource, match_device
 
 PERMISSION_HELP = (
     "Windows ha bloqueado el acceso a la cámara/capturadora. Actívalo en Configuración > "
@@ -65,6 +65,8 @@ class QtCameraSource(FrameSource):
         self._session = QMediaCaptureSession()
         self._session.setVideoOutput(self._widget)
         self._camera: QCamera | None = None
+        self._fps = FpsMeter()
+        self._widget.videoSink().videoFrameChanged.connect(self._on_frame)
 
     def preview_widget(self) -> QWidget:
         return self._widget
@@ -123,6 +125,16 @@ class QtCameraSource(FrameSource):
             self._session.setCamera(None)
             self._camera.deleteLater()
             self._camera = None
+
+    def _on_frame(self, _frame: object) -> None:
+        self._fps.tick()
+
+    def measured_fps(self) -> float | None:
+        return self._fps.fps() if self._camera is not None else None
+
+    def frame_size(self) -> QSize | None:
+        size = self._widget.videoSink().videoSize()
+        return size if size.isValid() and not size.isEmpty() else None
 
     def grab_frame(self) -> QImage | None:
         frame = self._widget.videoSink().videoFrame()

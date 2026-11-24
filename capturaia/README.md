@@ -44,8 +44,11 @@ de capturadoras solo se dejan abrir por un programa a la vez.
 
 | Acción | Cómo |
 |---|---|
-| Preguntar con la pregunta 1 | **F8** (o botón «Preguntar») |
-| Preguntar con la pregunta 2 | **F9** |
+| «Explícame esto» | **F8** (o botón «Preguntar») |
+| «Pon un ejemplo» | **F9** |
+| «Datos clave» | **F7** |
+| Entrar/salir del modo presentación | **F12** (dentro del modo, también **Esc**) |
+| Pasar página en la franja de respuestas | **F10** (al final vuelve arriba) |
 | Pregunta libre | Escríbela en la barra y pulsa Enter |
 | Elegir capturadora | Desplegable «Fuente» (recuerda la última) |
 | Dejar solo el panel | Desmarca «Vista previa» y estrecha la ventana |
@@ -61,6 +64,75 @@ van a `%APPDATA%\capturaia\capturas`. Se puede desactivar en `[history]`.
 
 Para probar sin capturadora: `uv run capturaia --demo`, que usa una imagen de prueba.
 `uv run capturaia --demo foto.png` usa la imagen que le pases.
+
+## Grabar cursos: modo presentación
+
+Para dar un curso mirando el **monitor del PC2** mientras manejas el **portátil (PC1)** con su
+propio ratón. La imagen del PC1 ocupa toda la pantalla menos una franja lateral con las
+respuestas, y la franja nunca tapa la imagen.
+
+En la grabación del PC1 no aparece nada de esto: CapturaIA vive en otro ordenador.
+
+Monitor 21:9 (2560×1080): la imagen del PC1 a tamaño completo y la franja en el hueco sobrante.
+
+![Modo presentación en monitor 21:9](docs/presentacion-2560x1080.png)
+
+Monitor 16:9 (1920×1080): la imagen se reduce lo justo para dejar la franja (380 px por defecto).
+
+![Modo presentación en monitor 16:9](docs/presentacion-1920x1080.png)
+
+### Montaje
+
+```
+Portátil ──HDMI──▶ splitter (EDID COPY, con cargador) ──OUT1──▶ monitor
+                                                      └─OUT2──▶ Cam Link 4K ──USB 3──▶ PC2 ──▶ monitor 2
+```
+
+- **La imagen va solo por cable.** El portátil manda la señal por su HDMI. El splitter la
+  copia, la capturadora la convierte a USB y el PC2 la recibe. No hay red de por medio: no se
+  instala nada en el portátil y el PC2 no puede leer nada de él, solo recibe la imagen.
+- **Win+P ▸ «Duplicar»** (solo si usas la pantalla del portátil a la vez) hace que la pantalla
+  del portátil y la salida HDMI muestren lo mismo. Va por el cable HDMI, no por wifi.
+  - No confundir con «Conectar a una pantalla inalámbrica» del mismo menú: esa sí iría por wifi,
+    y aquí **no se usa**.
+  - Con la tapa cerrada, o usando solo el monitor externo, no hace falta tocar nada.
+- **Lo único que sale a internet** es lo que el PC2 envía a Gemini cuando pulsas una tecla: la
+  captura de ese momento y la pregunta. Antes de usarlo:
+  - Comprueba que la política de tu organismo permite enviar a un servicio externo el
+    contenido que se ve en pantalla.
+  - No pulses nunca con datos personales de ciudadanos en pantalla.
+  - Si no quieres guardar copias en el PC2, pon `[history] enabled = false`.
+- **El PC2** no necesita estar en la red del trabajo. Basta con que tenga internet propio.
+
+### Puesta en marcha
+
+1. En `config.toml`, sección `[presenter]`:
+   - `screen = 2` para el monitor del PC2 donde quieres verlo (1, 2, 3…).
+   - `start = true` si quieres que arranque ya en este modo. También vale
+     `uv run capturaia --presentar`.
+2. Coloca el monitor 2 **justo detrás o debajo de la cámara** con la que te grabas. Así, al
+   leer la franja, la mirada parece natural.
+3. Para disparar sin soltar el ratón del PC1, conecta al PC2 un **pedal USB** o un teclado
+   numérico pequeño y asígnale las teclas (F7–F10, F12, o F13–F24 si el pedal lo permite).
+   Un pedal además no se oye en la grabación.
+
+### Retraso de la imagen (importante si mueves el ratón mirando el monitor 2)
+
+La imagen que ves en el monitor 2 lleva un pequeño retraso respecto al portátil. Para
+diapositivas y señalar con el ratón suele ser cómodo, pero mídelo en tu equipo:
+
+1. En el portátil, abre en el navegador un cronómetro con milisegundos.
+2. Haz una foto con el móvil en la que salgan a la vez el monitor del splitter (OUT1) y el
+   monitor 2.
+3. La diferencia entre los dos números es el retraso.
+
+Para que sea el mínimo posible:
+- La barra de estado de CapturaIA (fuera del modo presentación) debe decir algo como
+  `1920x1080 @ 60 fps (NV12) · recibiendo 59.9 fps`.
+  - Si pone 30 fps o `Jpeg`, la Cam Link no está en un USB 3 (azul o USB-C).
+- Activa el «modo juego» o de baja latencia del monitor 2 si lo tiene.
+- Deja la imagen del portátil a 1920×1080 a 60 Hz. Más resolución no aporta nada a la
+  capturadora y puede añadir retraso.
 
 ## Configuración
 

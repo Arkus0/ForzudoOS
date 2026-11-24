@@ -13,6 +13,7 @@ APP_NAME = "capturaia"
 BACKENDS = ("qt", "opencv", "image")
 THINKING_LEVELS = ("", "minimal", "low", "medium", "high")
 MEDIA_RESOLUTIONS = ("", "low", "medium", "high", "ultra_high")
+SIDES = ("right", "left")
 
 DEFAULT_CONFIG_TEXT = '''\
 # Configuración de CapturaIA
@@ -36,9 +37,12 @@ thinking_level = "low"
 media_resolution = "high"
 
 system_instruction = """
-Eres un asistente que analiza capturas de pantalla de otro ordenador.
-Responde siempre en español, de forma breve y directa, usando viñetas cuando ayude.
-Si algo no se ve bien en la imagen, dilo en lugar de inventarlo.
+Eres el apuntador de un formador que está grabando un curso en directo. Recibes una captura
+de su pantalla (normalmente una diapositiva o una página web) y una petición.
+Responde siempre en español, muy breve: frases cortas y viñetas que se puedan leer de un
+vistazo y decir en voz alta tal cual. Sin introducciones ni despedidas.
+Si no estás seguro de un dato (normativa, cifras, plazos, requisitos), dilo claramente en vez
+de inventarlo. Si algo no se ve bien en la imagen, dilo.
 """
 
 [capture]
@@ -79,14 +83,40 @@ folder = ""
 # Stream Deck o macro pad, y así nunca chocan con otros programas.
 
 [[presets]]
-name = "Analiza"
+name = "Explícame esto"
 hotkey = "<f8>"
-prompt = "Describe lo que se ve en la pantalla y dime lo más importante."
+prompt = "Explica lo que hay en pantalla en 3 o 4 frases sencillas que pueda decir en voz alta."
 
 [[presets]]
-name = "¿Qué hago?"
+name = "Pon un ejemplo"
 hotkey = "<f9>"
-prompt = "Según lo que ves, ¿qué debería hacer ahora? Dame como mucho 3 pasos concretos."
+prompt = "Dame un ejemplo práctico y realista de lo que se ve en pantalla, en pocas frases."
+
+[[presets]]
+name = "Datos clave"
+hotkey = "<f7>"
+prompt = "Dame los 3 datos clave que debería mencionar sobre lo que se ve en pantalla."
+
+[presenter]
+# Modo presentación: la imagen del PC1 a pantalla completa en un monitor del PC2, con una
+# franja lateral para las respuestas que nunca la tapa. Pensado para mirar ese monitor
+# mientras manejas el PC1.
+# true = arrancar directamente en este modo (también: capturaia --presentar).
+start = false
+# Monitor del PC2 donde ponerlo: 1, 2, 3... (0 = el monitor donde esté la ventana).
+screen = 2
+# Lado de la franja: "right" o "left".
+side = "right"
+# Ancho mínimo de la franja en píxeles. En un monitor panorámico (21:9) la franja ocupa todo
+# el hueco que sobra y la imagen del PC1 se ve a tamaño completo; en uno 16:9 la imagen se
+# reduce lo justo para dejar este ancho.
+min_strip_width = 380
+# Tamaño de letra de las respuestas (puntos).
+font_size = 20
+# Teclas globales: entrar/salir del modo y pasar página en la franja (al final vuelve arriba).
+# Dentro del modo, Esc también sale.
+toggle_hotkey = "<f12>"
+scroll_hotkey = "<f10>"
 '''
 
 
@@ -138,11 +168,23 @@ class Preset:
 
 
 @dataclass(frozen=True)
+class PresenterConfig:
+    start: bool = False
+    screen: int = 2
+    side: str = "right"
+    min_strip_width: int = 380
+    font_size: int = 20
+    toggle_hotkey: str = "<f12>"
+    scroll_hotkey: str = "<f10>"
+
+
+@dataclass(frozen=True)
 class AppConfig:
     gemini: GeminiConfig
     capture: CaptureConfig
     history: HistoryConfig
     presets: tuple[Preset, ...]
+    presenter: PresenterConfig = PresenterConfig()
     path: Path | None = None
 
 
@@ -235,10 +277,26 @@ def parse_config(raw: dict[str, Any], *, path: Path | None = None) -> AppConfig:
         raise ConfigError(msg)
     presets = tuple(_preset(item, i) for i, item in enumerate(raw_presets, start=1))
 
+    presenter = _section(raw, defaults, "presenter")
+    start = presenter.get("start", False)
+    if not isinstance(start, bool):
+        msg = "[presenter] start debe ser true o false."
+        raise ConfigError(msg)
+    presenter_cfg = PresenterConfig(
+        start=start,
+        screen=_int(presenter, "screen", 0, 16),
+        side=_choice(presenter, "side", SIDES),
+        min_strip_width=_int(presenter, "min_strip_width", 150, 4000),
+        font_size=_int(presenter, "font_size", 8, 96),
+        toggle_hotkey=_str(presenter, "toggle_hotkey").strip().lower(),
+        scroll_hotkey=_str(presenter, "scroll_hotkey").strip().lower(),
+    )
+
     return AppConfig(
         gemini=gemini_cfg,
         capture=capture_cfg,
         history=history_cfg,
+        presenter=presenter_cfg,
         presets=presets,
         path=path,
     )

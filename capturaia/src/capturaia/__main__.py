@@ -36,6 +36,11 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         metavar="IMAGEN",
         help="usa una imagen fija en lugar de la capturadora (sin IMAGEN: imagen de prueba)",
     )
+    parser.add_argument(
+        "--presentar",
+        action="store_true",
+        help="arranca en modo presentación (imagen a pantalla completa + franja de respuestas)",
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser.parse_args(argv)
 
@@ -75,8 +80,13 @@ def main(argv: list[str] | None = None) -> int:
     from capturaia.ui.main_window import MainWindow  # noqa: PLC0415
 
     window = MainWindow(config)
-    hotkeys = HotkeyBridge(config.presets)
+    presenter = config.presenter
+    hotkeys = HotkeyBridge(
+        config.presets,
+        actions={"presenter": presenter.toggle_hotkey, "scroll": presenter.scroll_hotkey},
+    )
     hotkeys.triggered.connect(window.ask)
+    hotkeys.action.connect(window.handle_action)
     warnings = hotkeys.start()
     if warnings:
         window.notify(" · ".join(warnings), 0)
@@ -86,6 +96,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Configuración: {config.path}")
 
     window.show()
+    if args.presentar or presenter.start:
+        window.set_presenter_mode(True)
     try:
         return app.exec()
     finally:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QImage, QLinearGradient, QPainter, QPixmap, QResizeEvent
 from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
 
@@ -88,3 +88,6 @@ class ImageFileSource(FrameSource):
 
     def grab_frame(self) -> QImage | None:
         return None if self._image.isNull() else self._image.copy()
+
+    def frame_size(self) -> QSize | None:
+        return None if self._image.isNull() else self._image.size()

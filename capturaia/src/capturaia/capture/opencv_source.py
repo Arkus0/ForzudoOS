@@ -10,11 +10,11 @@ import sys
 import threading
 from typing import Any
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
 
-from capturaia.capture.base import FrameSource
+from capturaia.capture.base import FpsMeter, FrameSource
 
 MAX_INDEX = 6
 
@@ -44,6 +44,7 @@ class OpenCvSource(FrameSource):
         self._lock = threading.Lock()
         self._frame: Any = None
         self._running = threading.Event()
+        self._fps = FpsMeter()
         self._thread: threading.Thread | None = None
         self._timer = QTimer(self)
         self._timer.setInterval(33)  # vista previa a ~30 fps, suficiente y barata
@@ -94,6 +95,7 @@ class OpenCvSource(FrameSource):
             failures = 0
             with self._lock:
                 self._frame = frame
+                self._fps.tick()
         capture.release()
 
     def _latest(self) -> Any:
@@ -124,3 +126,13 @@ class OpenCvSource(FrameSource):
     def grab_frame(self) -> QImage | None:
         frame = self._latest()
         return None if frame is None else bgr_to_qimage(frame)
+
+    def frame_size(self) -> QSize | None:
+        frame = self._latest()
+        return None if frame is None else QSize(frame.shape[1], frame.shape[0])
+
+    def measured_fps(self) -> float | None:
+        if self._thread is None:
+            return None
+        with self._lock:
+            return self._fps.fps()
