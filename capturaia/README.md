@@ -53,6 +53,7 @@ de capturadoras solo se dejan abrir por un programa a la vez.
 | Elegir capturadora | Desplegable «Fuente» (recuerda la última) |
 | Dejar solo el panel | Desmarca «Vista previa» y estrecha la ventana |
 | Ventana por encima de todo | «Siempre encima» |
+| Ver las respuestas en el móvil | Archivo ▸ Conectar el móvil (código QR) |
 | Ver capturas y respuestas guardadas | Archivo ▸ Abrir carpeta de capturas |
 | Cambiar preguntas, teclas o modelo | Archivo ▸ Editar configuración… (y reinicia la app) |
 
@@ -149,6 +150,72 @@ Para cursos en los que tienes que clicar con precisión, es mejor el modo atril.
 ![Con imagen en monitor 16:9](docs/presentacion-1920x1080.png)
 
 </details>
+
+## Respuestas en el móvil (sin segundo monitor)
+
+En vez del segundo monitor, puedes leer las respuestas en el **móvil**, puesto con un cuello de
+cisne pegado a tu monitor, casi en la línea de la cámara. El PC2 se queda debajo de la mesa,
+sin pantalla.
+
+<img src="docs/movil.png" alt="Respuestas en el móvil" width="300">
+
+```
+Portátil ──HDMI──▶ splitter ──OUT1──▶ ASUS (trabajas aquí, cámara encima, móvil al lado)
+                            └─OUT2──▶ Cam Link ──USB──▶ PC2 (sin monitor) ──wifi de casa──▶ móvil
+```
+
+- **Sin apps ni cuentas:** el móvil abre una página que sirve el propio PC2 en tu wifi de casa.
+  Las respuestas no pasan por ningún servidor de fuera. La dirección lleva una clave aleatoria
+  para que otro aparato de la red no pueda leerla.
+- **Se actualiza sola** mientras Gemini escribe. La última respuesta sale arriba en grande y las
+  anteriores, atenuadas debajo.
+- **Fondo negro puro y texto gris suave.** Con los botones de abajo cambias el tamaño de letra
+  (A−/A+) y el brillo del texto (☀−/☀+); el móvil lo recuerda.
+- **Si se corta,** el móvil muestra «Sin conexión con CapturaIA» en rojo, y en el PC2 el
+  indicador **Móvil** se pone en rojo.
+
+### Primera vez
+
+1. En el PC2, abre **Archivo ▸ Conectar el móvil**: sale un código QR y la dirección
+   (`http://IP-del-PC2:8765/…/`).
+   - Para ver el PC2 en esta configuración inicial, conéctalo un momento a la otra entrada de
+     la ASUS (HDMI o DisplayPort) y luego vuelve a la del portátil.
+2. Escanéalo con la cámara del móvil. En Chrome: menú ⋮ ▸ **Añadir a pantalla de inicio**, y
+   la próxima vez la abres con un toque. La dirección no cambia.
+3. Si Windows pregunta si deja a Python acceder a la red, acepta **solo para redes privadas**.
+4. Para que CapturaIA arranque sola con el PC2: Win+R ▸ `shell:startup` y deja ahí un acceso
+   directo a `Iniciar CapturaIA.cmd`.
+
+### Que la pantalla del móvil no se apague (Pixel 7 / Android)
+
+1. Deja el móvil **cargando** mientras grabas (el cable va por el cuello de cisne).
+2. Activa las Opciones para desarrolladores: Ajustes ▸ Información del teléfono ▸ pulsa 7 veces
+   en «Número de compilación».
+3. En Ajustes ▸ Sistema ▸ Opciones para desarrolladores, activa **«Pantalla activa»**: la
+   pantalla no se apaga mientras carga.
+4. Baja el brillo del móvil. Con fondo negro, el Pixel apenas emite luz y no te ilumina la cara.
+
+En iPhone: Ajustes ▸ Pantalla y brillo ▸ Bloqueo automático ▸ Nunca.
+
+### Lanzar las preguntas sin tocar nada visible
+
+Empareja con el **PC2** (no con el móvil) un mando pequeño con modo teclado, como algunos
+8BitDo (Micro, Zero 2…; comprueba que el modelo tenga «keyboard mode»), o un pedal USB. Con su
+programa, asigna a los botones F8, F9, F7, F10 (pasar página) y F12. CapturaIA ya los entiende
+como teclas globales.
+
+### ¿Y quitar también el PC2, con la capturadora enchufada al móvil?
+
+El móvil puede **ver** la capturadora con una app de cámara USB, pero eso solo muestra la
+pantalla del portátil en el móvil: **no genera respuestas**. Hacerlo todo en el móvil
+(capturar, preguntar a Gemini y mostrar) exigiría una app de Android hecha a medida.
+Además:
+- Con la capturadora en el único USB-C, haría falta un adaptador con carga para que no se
+  quede sin batería.
+- El móvil se calentaría en sesiones largas.
+
+Para grabaciones que tienen que salir bien a la primera, el PC2 sin monitor es más fiable: hace
+el trabajo pesado enchufado a la corriente, y el móvil solo muestra texto.
 
 ## Configuración
 

@@ -128,6 +128,17 @@ show_video = false
 # Teclas globales: entrar/salir del modo y pasar página en la franja (al final vuelve arriba).
 toggle_hotkey = "<f12>"
 scroll_hotkey = "<f10>"
+
+[phone]
+# Ver las respuestas en el móvil (por ejemplo, en un cuello de cisne junto a tu monitor).
+# CapturaIA abre una página en tu wifi de casa: el móvil la abre en el navegador, sin
+# instalar nada y sin pasar por servidores de fuera. La dirección y un código QR están en
+# Archivo ▸ Conectar el móvil. El móvil y el PC2 tienen que estar en la misma wifi.
+enabled = true
+# Puerto de la página (cámbialo solo si otro programa ya usa este).
+port = 8765
+# Tamaño de letra inicial en el móvil, en píxeles (luego se ajusta desde el propio móvil).
+font_size = 26
 '''
 
 
@@ -191,12 +202,20 @@ class PresenterConfig:
 
 
 @dataclass(frozen=True)
+class PhoneConfig:
+    enabled: bool = True
+    port: int = 8765
+    font_size: int = 26
+
+
+@dataclass(frozen=True)
 class AppConfig:
     gemini: GeminiConfig
     capture: CaptureConfig
     history: HistoryConfig
     presets: tuple[Preset, ...]
     presenter: PresenterConfig = PresenterConfig()
+    phone: PhoneConfig = PhoneConfig()
     path: Path | None = None
 
 
@@ -308,6 +327,7 @@ def parse_config(raw: dict[str, Any], *, path: Path | None = None) -> AppConfig:
         capture=capture_cfg,
         history=history_cfg,
         presenter=presenter_cfg,
+        phone=_phone(_section(raw, defaults, "phone")),
         presets=presets,
         path=path,
     )
@@ -327,6 +347,14 @@ def _str(section: dict[str, Any], key: str) -> str:
         msg = f"'{key}' debe ser texto entre comillas."
         raise ConfigError(msg)
     return value
+
+
+def _phone(section: dict[str, Any]) -> PhoneConfig:
+    return PhoneConfig(
+        enabled=_bool(section, "enabled"),
+        port=_int(section, "port", 1024, 65535),
+        font_size=_int(section, "font_size", 12, 80),
+    )
 
 
 def _bool(section: dict[str, Any], key: str) -> bool:

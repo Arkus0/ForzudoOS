@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import html
 import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -39,8 +40,10 @@ from capturaia.gemini import Asker, GeminiClient, GeminiError
 from capturaia.history import History
 from capturaia.hotkeys import pretty_hotkey
 from capturaia.imaging import qimage_to_jpeg
+from capturaia.phone import PhoneServer, markdown_to_html
 from capturaia.ui.answer_panel import AnswerCard, AnswerPanel
 from capturaia.ui.layout import presenter_split
+from capturaia.ui.phone_dialog import PhoneDialog
 from capturaia.worker import AskWorker
 
 SourceFactory = Callable[[CaptureConfig, str], FrameSource]
@@ -72,6 +75,7 @@ class MainWindow(QMainWindow):
         device_lister: Callable[[CaptureConfig], list[str]] = list_devices,
         thread_pool: QThreadPool | None = None,
         settings: QSettings | None = None,
+        phone: PhoneServer | None = None,
     ) -> None:
         super().__init__()
         self._config = config
@@ -124,14 +128,13 @@ class MainWindow(QMainWindow):
         self._build_toolbar(device_lister(config.capture))
         self._source_label = QLabel("Sin fuente")
         self.statusBar().addPermanentWidget(self._source_label)
-        geometry = self._settings.value("geometry")
-        if geometry is not None:
-            self.restoreGeometry(geometry)
+        self._restore_window_geometry()
 
         if not config.gemini.resolved_api_key() and asker_factory is None:
             self.notify("Falta la API key de Gemini (variable GEMINI_API_KEY o config.toml).", 0)
 
         self._setup_timers_and_shortcuts()
+        self._setup_phone(phone)
         self.start_source(self._initial_device)
         QTimer.singleShot(0, self.check_gemini)
 
@@ -229,8 +232,64 @@ class MainWindow(QMainWindow):
         if self._config.path is not None:
             edit_config = menu.addAction("Editar configuración…")
             edit_config.triggered.connect(self.open_config_file)
+        self._phone_action = menu.addAction("Conectar el móvil…")
+        self._phone_action.triggered.connect(self.show_phone_dialog)
+        self._phone_action.setVisible(False)
         menu.addSeparator()
         menu.addAction("Salir", self.close)
+
+    def _restore_window_geometry(self) -> None:
+        geometry = self._settings.value("geometry")
+        if geometry is not None:
+            self.restoreGeometry(geometry)
+
+    # ------------------------------------------------------------------ móvil
+    def _setup_phone(self, phone: PhoneServer | None) -> None:
+        self._phone = phone
+        self._phone_was_connected = False
+        if phone is None:
+            return
+        self._phone_action.setVisible(True)
+        self.panel.set_health("Móvil", None, f"abre {phone.url} en el móvil")
+        self._phone_timer = QTimer(self)
+        self._phone_timer.setInterval(300)
+        self._phone_timer.timeout.connect(self.publish_to_phone)
+        self._phone_timer.start()
+        self.notify(f"Móvil: abre {phone.url} (Archivo ▸ Conectar el móvil)", 0)
+
+    def publish_to_phone(self) -> None:
+        """Copia el estado de la franja para que la página del móvil lo lea."""
+        if self._phone is None:
+            return
+        connected = self._phone.state.connected()
+        if connected:
+            self._phone_was_connected = True
+            self.panel.set_health("Móvil", True, "leyendo las respuestas")
+            self.panel.set_alert("phone", "")
+        elif connected is False and self._phone_was_connected:
+            self.panel.set_health(
+                "Móvil", False, "ha dejado de leer (¿pantalla apagada o sin wifi?)"
+            )
+            self.panel.set_alert("phone", "El móvil ha dejado de leer las respuestas.")
+        cards = []
+        for card in self.panel.cards[:3]:
+            body = html.escape(card.body.text()) if card.is_error else markdown_to_html(card.text)
+            cards.append(
+                {
+                    "title": card.title_plain,
+                    "html": body,
+                    "status": card.status.text(),
+                    "error": card.is_error,
+                }
+            )
+        alerts = self.panel.alert_text
+        self._phone.state.publish(
+            {"cards": cards, "health": self.panel.health_states(), "alert": alerts}
+        )
+
+    def show_phone_dialog(self) -> None:
+        if self._phone is not None:
+            PhoneDialog(self._phone.url, self).exec()
 
     def notify(self, message: str, timeout_ms: int = 6000) -> None:
         self.statusBar().showMessage(message, timeout_ms)

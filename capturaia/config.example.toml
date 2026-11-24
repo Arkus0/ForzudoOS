@@ -110,3 +110,14 @@ show_video = false
 # Teclas globales: entrar/salir del modo y pasar página en la franja (al final vuelve arriba).
 toggle_hotkey = "<f12>"
 scroll_hotkey = "<f10>"
+
+[phone]
+# Ver las respuestas en el móvil (por ejemplo, en un cuello de cisne junto a tu monitor).
+# CapturaIA abre una página en tu wifi de casa: el móvil la abre en el navegador, sin
+# instalar nada y sin pasar por servidores de fuera. La dirección y un código QR están en
+# Archivo ▸ Conectar el móvil. El móvil y el PC2 tienen que estar en la misma wifi.
+enabled = true
+# Puerto de la página (cámbialo solo si otro programa ya usa este).
+port = 8765
+# Tamaño de letra inicial en el móvil, en píxeles (luego se ajusta desde el propio móvil).
+font_size = 26

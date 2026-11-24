@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import secrets
 import sys
 import threading
 from dataclasses import replace
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from capturaia import __version__
-from capturaia.config import ConfigError, default_config_path, load_config
+from capturaia.config import AppConfig, ConfigError, default_config_path, load_config
+
+if TYPE_CHECKING:
+    from capturaia.phone import PhoneServer
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -79,7 +84,14 @@ def main(argv: list[str] | None = None) -> int:
     from capturaia.hotkeys import HotkeyBridge, pretty_hotkey  # noqa: PLC0415
     from capturaia.ui.main_window import MainWindow  # noqa: PLC0415
 
-    window = MainWindow(config)
+    phone = _start_phone(config)
+    window = MainWindow(config, phone=phone)
+    if config.phone.enabled and phone is None:
+        window.notify(
+            f"No se pudo abrir la página del móvil en el puerto {config.phone.port} "
+            "(¿otro programa lo usa? Cámbialo en [phone] port).",
+            0,
+        )
     presenter = config.presenter
     hotkeys = HotkeyBridge(
         config.presets,
@@ -106,6 +118,29 @@ def main(argv: list[str] | None = None) -> int:
         return app.exec()
     finally:
         hotkeys.stop()
+        if phone is not None:
+            phone.stop()
+
+
+def _start_phone(config: AppConfig) -> PhoneServer | None:
+    """Arranca la página del móvil; la clave de la dirección se guarda para que no cambie."""
+    if not config.phone.enabled:
+        return None
+    from PySide6.QtCore import QSettings  # noqa: PLC0415
+
+    from capturaia.phone import PhoneServer, PhoneState  # noqa: PLC0415
+
+    settings = QSettings("CapturaIA", "CapturaIA")
+    token = str(settings.value("phone_token", "") or "")
+    if not token:
+        token = secrets.token_urlsafe(9)
+        settings.setValue("phone_token", token)
+    server = PhoneServer(PhoneState(), token, config.phone.port, config.phone.font_size)
+    try:
+        server.start()
+    except OSError:
+        return None
+    return server
 
 
 if __name__ == "__main__":

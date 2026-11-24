@@ -77,6 +77,7 @@ class AnswerCard(QFrame):
         self._text = ""
         self.done = False
         self._error = False
+        self.title_plain = title
         self._compact = False
         self._done_info: tuple[float, Path | None] | None = None
 
@@ -136,6 +137,10 @@ class AnswerCard(QFrame):
     @property
     def text(self) -> str:
         return self._text
+
+    @property
+    def is_error(self) -> bool:
+        return self._error
 
     def append_text(self, chunk: str) -> None:
         self._text += chunk
@@ -260,6 +265,9 @@ class AnswerPanel(QWidget):
 
     def health(self, name: str) -> bool | None:
         return self._health.get(name, (None, ""))[0]
+
+    def health_states(self) -> dict[str, bool | None]:
+        return {name: ok for name, (ok, _detail) in self._health.items()}
 
     def _render_health(self) -> None:
         parts = []

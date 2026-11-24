@@ -130,3 +130,13 @@ def test_old_min_strip_width_name_still_works(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
     path.write_text("[presenter]\nmin_strip_width = 420\n", encoding="utf-8")
     assert load_config(path).presenter.strip_width == 420
+
+
+def test_phone_section(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text("[phone]\nenabled = false\nport = 9000\nfont_size = 30\n", encoding="utf-8")
+    phone = load_config(path).phone
+    assert (phone.enabled, phone.port, phone.font_size) == (False, 9000, 30)
+    path.write_text("[phone]\nport = 80\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="port"):
+        load_config(path)
