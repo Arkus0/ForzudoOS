@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import functools
-from collections.abc import Callable
+import time
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,7 @@ from PySide6.QtGui import (
     QCloseEvent,
     QDesktopServices,
     QGuiApplication,
+    QImage,
     QKeySequence,
     QResizeEvent,
     QShortcut,
@@ -42,6 +44,10 @@ from capturaia.ui.layout import presenter_split
 from capturaia.worker import AskWorker
 
 SourceFactory = Callable[[CaptureConfig, str], FrameSource]
+
+NO_SIGNAL_GRACE_S = 3.0  # segundos sin imagen antes de avisar
+RECONNECT_EVERY_S = 5.0  # cada cuánto se reintenta abrir la capturadora
+MIN_LIVE_FPS = 0.5
 
 
 @dataclass
@@ -75,6 +81,8 @@ class MainWindow(QMainWindow):
         self._source_factory = source_factory
         self._pool = thread_pool or QThreadPool.globalInstance()
         self._requests: dict[int, _Request] = {}
+        self._workers: dict[int, AskWorker] = {}
+        self._next_worker_key = 1
         self._busy: dict[int, int] = {}  # preset -> id de la petición en curso
         self._next_id = 1
         self._source: FrameSource | None = None
@@ -125,8 +133,15 @@ class MainWindow(QMainWindow):
 
         self._setup_timers_and_shortcuts()
         self.start_source(self._initial_device)
+        QTimer.singleShot(0, self.check_gemini)
 
     def _setup_timers_and_shortcuts(self) -> None:
+        # Vigilancia de la señal de la capturadora (ver _watch_signal).
+        self._current_device = ""
+        self._clock: Callable[[], float] = time.monotonic
+        self._no_signal_since: float | None = None
+        self._last_reconnect = self._clock()
+
         self._exit_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
         self._exit_shortcut.setEnabled(False)
         self._exit_shortcut.activated.connect(lambda: self.set_presenter_mode(False))
@@ -279,7 +294,15 @@ class MainWindow(QMainWindow):
         source.error.connect(self._on_source_error)
         self._preview_layout.addWidget(source.preview_widget())
         self._source = source
+        self._current_device = device
+        if self.presenter_mode and not self._config.presenter.show_video:
+            self._set_source_preview(False)
         source.start()
+
+    def _set_source_preview(self, enabled: bool) -> None:
+        if self._source is not None:
+            self._source.set_preview_enabled(enabled)
+            self._source.preview_widget().setVisible(enabled)
 
     def _on_source_status(self, text: str) -> None:
         self._source_text = text
@@ -298,9 +321,67 @@ class MainWindow(QMainWindow):
         if fps is not None:
             text += f" · recibiendo {fps:.1f} fps"
         self._source_label.setText(text)
+        self._watch_signal(fps)
         size = self._source.frame_size()
         if self.presenter_mode and size is not None and size != self._last_frame_size:
             self.apply_presenter_layout()
+
+    def _watch_signal(self, fps: float | None) -> None:
+        """Avisa si la capturadora deja de mandar imagen y la intenta reabrir."""
+        if fps is None:  # imagen fija: siempre "con señal"
+            self.panel.set_health("Señal", True, "imagen fija")
+            return
+        if fps >= MIN_LIVE_FPS:
+            self._no_signal_since = None
+            self.panel.set_health("Señal", True, f"{fps:.0f} fps")
+            self.panel.set_alert("signal", "")
+            return
+        now = self._clock()
+        if self._no_signal_since is None:
+            self._no_signal_since = now
+        if now - self._no_signal_since < NO_SIGNAL_GRACE_S:
+            return
+        self.panel.set_health("Señal", False, "no llega imagen de la capturadora")
+        self.panel.set_alert("signal", "Sin señal de la capturadora. Reconectando…")
+        if now - self._last_reconnect >= RECONNECT_EVERY_S:
+            self._last_reconnect = now
+            self.start_source(self._current_device)
+
+    def has_live_signal(self) -> bool:
+        fps = self._source.measured_fps() if self._source is not None else 0.0
+        return fps is None or fps >= MIN_LIVE_FPS
+
+    # ------------------------------------------------------------------ comprobaciones
+    def check_gemini(self) -> None:
+        """Comprueba clave y modelo al arrancar (sin gastar una pregunta)."""
+        try:
+            asker = self._get_asker()
+        except GeminiError as exc:
+            self._set_gemini_health(ok=False, detail=str(exc))
+            return
+        check = getattr(asker, "check", None)
+        if check is None:
+            self._set_gemini_health(ok=True, detail=asker.model)
+            return
+
+        def run() -> Iterator[str]:
+            yield check()
+
+        worker = AskWorker(0, run)
+        worker.signals.finished.connect(
+            lambda _id, name, _s: self._set_gemini_health(ok=True, detail=name)
+        )
+        worker.signals.failed.connect(
+            lambda _id, msg: self._set_gemini_health(ok=False, detail=msg)
+        )
+        self._start_worker(worker)
+
+    def _set_gemini_health(self, *, ok: bool, detail: str) -> None:
+        self.panel.set_health("Gemini", ok, detail)
+        self.panel.set_alert("gemini", "" if ok else f"Gemini no está listo: {detail}")
+
+    def set_hotkeys_health(self, ok: bool, detail: str) -> None:
+        self.panel.set_health("Teclas", ok, detail)
 
     # ------------------------------------------------------------------ modo presentación
     def handle_action(self, name: str) -> None:
@@ -330,6 +411,9 @@ class MainWindow(QMainWindow):
             self._saved_geometry = self.saveGeometry()
             self._saved_sizes = self._splitter.sizes()
             self._splitter.setHandleWidth(0)
+            if not cfg.show_video:
+                # Modo atril: no se pinta la imagen; el resto de la pantalla queda en negro.
+                self._set_source_preview(False)
             if cfg.side == "left":
                 self._splitter.insertWidget(0, self.panel)
             self.panel.set_hint(self._presenter_hint())
@@ -348,6 +432,7 @@ class MainWindow(QMainWindow):
         else:
             self._splitter.setHandleWidth(self._handle_width)
             self._splitter.insertWidget(0, self._preview_box)
+            self._set_source_preview(True)
             self.panel.set_hint(self._normal_hint)
             self.unsetCursor()
             self._preview_box.unsetCursor()
@@ -379,15 +464,20 @@ class MainWindow(QMainWindow):
     def apply_presenter_layout(self) -> None:
         if not self.presenter_mode:
             return
+        cfg = self._config.presenter
         area = self._splitter.size()
         frame = self._source.frame_size() if self._source is not None else None
         self._last_frame_size = frame
-        frame_w = frame.width() if frame else self._config.capture.width
-        frame_h = frame.height() if frame else self._config.capture.height
-        video_w, strip_w = presenter_split(
-            area.width(), area.height(), frame_w, frame_h, self._config.presenter.min_strip_width
-        )
-        if self._config.presenter.side == "left":
+        if cfg.show_video:
+            frame_w = frame.width() if frame else self._config.capture.width
+            frame_h = frame.height() if frame else self._config.capture.height
+            video_w, strip_w = presenter_split(
+                area.width(), area.height(), frame_w, frame_h, cfg.strip_width
+            )
+        else:
+            strip_w = min(cfg.strip_width, area.width())
+            video_w = area.width() - strip_w
+        if cfg.side == "left":
             self._splitter.setSizes([strip_w, video_w])
         else:
             self._splitter.setSizes([video_w, strip_w])
@@ -416,8 +506,11 @@ class MainWindow(QMainWindow):
             self.notify(f"«{title}» ya está en curso; espera a que termine.")
             return None
         frame = self._source.grab_frame() if self._source is not None else None
-        if frame is None:
-            self.notify("Todavía no llega imagen de la capturadora.")
+        if frame is None or not self.has_live_signal():
+            message = "Sin señal de la capturadora: no he enviado nada a Gemini."
+            self.notify(message)
+            if self.presenter_mode:  # la barra de estado no se ve: aviso en la franja
+                self.panel.add_card(title, prompt, QImage(), datetime.now()).mark_error(message)
             return None
         capture = self._config.capture
         try:
@@ -452,8 +545,27 @@ class MainWindow(QMainWindow):
         worker.signals.chunk.connect(self._on_chunk)
         worker.signals.finished.connect(self._on_finished)
         worker.signals.failed.connect(self._on_failed)
-        self._pool.start(worker)
+        self._start_worker(worker)
         return request_id
+
+    def _start_worker(self, worker: AskWorker) -> None:
+        """Lanza la petición y mantiene vivo el worker (y sus señales) hasta que termina.
+
+        Si nadie guarda una referencia, Python puede liberar el objeto de señales mientras la
+        petición sigue en marcha: la respuesta se pierde o la app se cae.
+        """
+        worker.setAutoDelete(False)
+        key = self._next_worker_key
+        self._next_worker_key += 1
+        self._workers[key] = worker
+
+        def release(*_args: object) -> None:
+            # Diferido: no se puede destruir el emisor mientras entrega su propia señal.
+            QTimer.singleShot(0, lambda: self._workers.pop(key, None))
+
+        worker.signals.finished.connect(release)
+        worker.signals.failed.connect(release)
+        self._pool.start(worker)
 
     def _get_asker(self) -> Asker:
         if self._asker is None:
@@ -488,11 +600,13 @@ class MainWindow(QMainWindow):
         except OSError as exc:
             self.notify(f"No se pudo guardar en el historial: {exc}")
         request.card.mark_done(seconds, saved)
+        self._set_gemini_health(ok=True, detail=request.model)
 
     def _on_failed(self, request_id: int, message: str) -> None:
         request = self._release(request_id)
         if request is not None:
             request.card.mark_error(message)
+            self.panel.set_health("Gemini", False, message)
 
     @property
     def pending_requests(self) -> int:

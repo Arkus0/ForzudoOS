@@ -56,6 +56,19 @@ class GeminiClient:
             resolution = f"MEDIA_RESOLUTION_{self.config.media_resolution.upper()}"
         return types.Part.from_bytes(data=jpeg, mime_type="image/jpeg", media_resolution=resolution)
 
+    def check(self) -> str:
+        """Comprueba la clave y el modelo sin gastar una petición de generación."""
+        from google.genai import errors  # noqa: PLC0415
+
+        try:
+            info = self._client.models.get(model=self.model)
+        except errors.APIError as exc:
+            raise GeminiError(describe_api_error(exc, self.model)) from exc
+        except Exception as exc:
+            msg = f"No se pudo contactar con Gemini ({type(exc).__name__}: {exc})"
+            raise GeminiError(msg) from exc
+        return getattr(info, "display_name", None) or self.model
+
     def ask_stream(self, jpeg: bytes, prompt: str) -> Iterator[str]:
         """Envía la imagen y la pregunta; va devolviendo el texto según llega."""
         from google.genai import errors  # noqa: PLC0415

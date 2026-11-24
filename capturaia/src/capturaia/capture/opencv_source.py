@@ -132,7 +132,11 @@ class OpenCvSource(FrameSource):
         return None if frame is None else QSize(frame.shape[1], frame.shape[0])
 
     def measured_fps(self) -> float | None:
-        if self._thread is None:
-            return None
         with self._lock:
             return self._fps.fps()
+
+    def set_preview_enabled(self, enabled: bool) -> None:
+        if enabled and self._thread is not None:
+            self._timer.start()
+        else:
+            self._timer.stop()

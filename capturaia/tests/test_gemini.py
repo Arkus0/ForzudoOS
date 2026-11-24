@@ -28,6 +28,11 @@ class FakeModels:
         self.exc = exc
         self.calls: list[dict[str, Any]] = []
 
+    def get(self, *, model: str) -> Any:
+        if self.exc is not None:
+            raise self.exc
+        return SimpleNamespace(display_name=f"Modelo {model}")
+
     def generate_content_stream(self, **kwargs: Any) -> Any:
         self.calls.append(kwargs)
         if self.exc is not None:
@@ -99,3 +104,12 @@ def test_network_error_is_translated() -> None:
 def test_describe_api_error(code: int, message: str, fragment: str) -> None:
     exc = SimpleNamespace(code=code, message=message)
     assert fragment in describe_api_error(exc, "modelo-x")
+
+
+def test_check_validates_key_and_model() -> None:
+    assert _client(FakeModels(), model="m-9").check() == "Modelo m-9"
+    exc = errors.ClientError(404, {"error": {"message": "no existe", "status": "NOT_FOUND"}})
+    with pytest.raises(GeminiError, match="m-9"):
+        _client(FakeModels(exc=exc), model="m-9").check()
+    with pytest.raises(GeminiError, match="No se pudo contactar"):
+        _client(FakeModels(exc=TimeoutError("lento"))).check()

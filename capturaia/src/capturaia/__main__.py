@@ -76,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
     # Precarga el SDK de Gemini en segundo plano para que la primera pregunta no espere.
     threading.Thread(target=__import__, args=("google.genai",), daemon=True).start()
 
-    from capturaia.hotkeys import HotkeyBridge  # noqa: PLC0415
+    from capturaia.hotkeys import HotkeyBridge, pretty_hotkey  # noqa: PLC0415
     from capturaia.ui.main_window import MainWindow  # noqa: PLC0415
 
     window = MainWindow(config)
@@ -90,6 +90,10 @@ def main(argv: list[str] | None = None) -> int:
     warnings = hotkeys.start()
     if warnings:
         window.notify(" · ".join(warnings), 0)
+    active = ", ".join(pretty_hotkey(k) for k in hotkeys.active)
+    window.set_hotkeys_health(
+        bool(hotkeys.active) and not warnings, " · ".join(warnings) or f"activas: {active}"
+    )
     if not hotkeys.active:
         window.enable_local_shortcuts()
     if config.path is not None:

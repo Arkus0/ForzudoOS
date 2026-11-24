@@ -39,8 +39,11 @@ media_resolution = "high"
 system_instruction = """
 Eres el apuntador de un formador que está grabando un curso en directo. Recibes una captura
 de su pantalla (normalmente una diapositiva o una página web) y una petición.
-Responde siempre en español, muy breve: frases cortas y viñetas que se puedan leer de un
-vistazo y decir en voz alta tal cual. Sin introducciones ni despedidas.
+Tu respuesta se lee de reojo en una columna estrecha mientras habla, así que:
+- Responde siempre en español y MUY breve: como mucho 5 viñetas de pocas palabras
+  (unas 50 palabras en total), que pueda decir en voz alta tal cual.
+- Pon en **negrita** la palabra clave de cada viñeta.
+- Sin introducciones, sin despedidas, sin tablas ni títulos.
 Si no estás seguro de un dato (normativa, cifras, plazos, requisitos), dilo claramente en vez
 de inventarlo. Si algo no se ve bien en la imagen, dilo.
 """
@@ -98,23 +101,31 @@ hotkey = "<f7>"
 prompt = "Dame los 3 datos clave que debería mencionar sobre lo que se ve en pantalla."
 
 [presenter]
-# Modo presentación: la imagen del PC1 a pantalla completa en un monitor del PC2, con una
-# franja lateral para las respuestas que nunca la tapa. Pensado para mirar ese monitor
-# mientras manejas el PC1.
+# Modo presentación (F12 para entrar/salir; dentro, Esc también sale). Ocupa un monitor del
+# PC2 a pantalla completa, en negro, con una franja de respuestas en letra grande.
+#
+# Por defecto es el "modo atril": trabajas en tu monitor de siempre (directo del portátil) y
+# el monitor del PC2, puesto al lado, solo enseña la franja pegada a ese lado. Así basta un
+# vistazo corto y no dependes del PC2 para ver ni para clicar.
+#
 # true = arrancar directamente en este modo (también: capturaia --presentar).
 start = false
-# Monitor del PC2 donde ponerlo: 1, 2, 3... (0 = el monitor donde esté la ventana).
-screen = 2
-# Lado de la franja: "right" o "left".
-side = "right"
-# Ancho mínimo de la franja en píxeles. En un monitor panorámico (21:9) la franja ocupa todo
-# el hueco que sobra y la imagen del PC1 se ve a tamaño completo; en uno 16:9 la imagen se
-# reduce lo justo para dejar este ancho.
-min_strip_width = 380
+# Monitor del PC2 donde ponerlo: 1, 2, 3... (0 = el monitor donde esté la ventana; la app
+# recuerda dónde la dejaste).
+screen = 0
+# Lado de la franja: el que queda pegado a tu monitor de trabajo. Si el monitor del PC2 está
+# a la DERECHA del tuyo, la franja va a la izquierda ("left"), y al revés.
+side = "left"
+# Ancho de la franja en píxeles.
+strip_width = 340
 # Tamaño de letra de las respuestas (puntos).
 font_size = 20
+# false = solo la franja (modo atril, recomendado).
+# true = además, la imagen del PC1 en el resto de la pantalla (para mirar ese monitor en vez
+#        del tuyo; la imagen sale algo más pequeña y con un pequeño retraso). En un monitor
+#        panorámico la franja se queda con todo el hueco que sobra.
+show_video = false
 # Teclas globales: entrar/salir del modo y pasar página en la franja (al final vuelve arriba).
-# Dentro del modo, Esc también sale.
 toggle_hotkey = "<f12>"
 scroll_hotkey = "<f10>"
 '''
@@ -170,10 +181,11 @@ class Preset:
 @dataclass(frozen=True)
 class PresenterConfig:
     start: bool = False
-    screen: int = 2
-    side: str = "right"
-    min_strip_width: int = 380
+    screen: int = 0
+    side: str = "left"
+    strip_width: int = 340
     font_size: int = 20
+    show_video: bool = False
     toggle_hotkey: str = "<f12>"
     scroll_hotkey: str = "<f10>"
 
@@ -278,16 +290,15 @@ def parse_config(raw: dict[str, Any], *, path: Path | None = None) -> AppConfig:
     presets = tuple(_preset(item, i) for i, item in enumerate(raw_presets, start=1))
 
     presenter = _section(raw, defaults, "presenter")
-    start = presenter.get("start", False)
-    if not isinstance(start, bool):
-        msg = "[presenter] start debe ser true o false."
-        raise ConfigError(msg)
+    if "min_strip_width" in raw.get("presenter", {}):  # nombre antiguo
+        presenter["strip_width"] = presenter.pop("min_strip_width")
     presenter_cfg = PresenterConfig(
-        start=start,
+        start=_bool(presenter, "start"),
         screen=_int(presenter, "screen", 0, 16),
         side=_choice(presenter, "side", SIDES),
-        min_strip_width=_int(presenter, "min_strip_width", 150, 4000),
+        strip_width=_int(presenter, "strip_width", 150, 4000),
         font_size=_int(presenter, "font_size", 8, 96),
+        show_video=_bool(presenter, "show_video"),
         toggle_hotkey=_str(presenter, "toggle_hotkey").strip().lower(),
         scroll_hotkey=_str(presenter, "scroll_hotkey").strip().lower(),
     )
@@ -314,6 +325,14 @@ def _str(section: dict[str, Any], key: str) -> str:
     value = section.get(key, "")
     if not isinstance(value, str):
         msg = f"'{key}' debe ser texto entre comillas."
+        raise ConfigError(msg)
+    return value
+
+
+def _bool(section: dict[str, Any], key: str) -> bool:
+    value = section.get(key)
+    if not isinstance(value, bool):
+        msg = f"'{key}' debe ser true o false."
         raise ConfigError(msg)
     return value
 

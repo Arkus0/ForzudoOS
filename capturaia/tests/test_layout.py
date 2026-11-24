@@ -41,3 +41,13 @@ def test_fps_meter() -> None:
     assert meter.fps() == pytest.approx(60, abs=1)
     now[0] += 5  # deja de llegar imagen
     assert meter.fps() == 0.0
+
+
+def test_compact_markdown_removes_list_indent() -> None:
+    from capturaia.ui.answer_panel import compact_markdown  # noqa: PLC0415
+
+    text = "Intro\n- **uno** dos\n  * tres\n1. cuatro\n2) cinco\nfin"
+    assert compact_markdown(text) == (
+        "Intro\n\n• **uno** dos\n\n• tres\n\n1\\. cuatro\n\n2\\. cinco\n\nfin"
+    )
+    assert compact_markdown("sin listas") == "sin listas"

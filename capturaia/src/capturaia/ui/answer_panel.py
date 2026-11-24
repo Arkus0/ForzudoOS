@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -36,7 +37,35 @@ QFrame#card[latest="true"] { border: 2px solid #4da3ff; }
 QLabel { color: #f2f2f2; }
 QLabel#title { color: #8cc4ff; }
 QLabel#meta, QLabel#status { color: #9aa0a6; }
+QFrame#card[latest="false"] QLabel { color: #7d838c; }
 """
+HEALTH_COLORS = {True: "#3fb950", False: "#f85149", None: "#8b949e"}
+HEALTH_ORDER = ("Señal", "Gemini", "Teclas")
+
+_BULLET = re.compile(r"^\s*[-*+]\s+")
+_NUMBERED = re.compile(r"^\s*(\d+)[.)]\s+")
+
+
+def compact_markdown(text: str) -> str:
+    """Quita la sangría de las listas para aprovechar una columna estrecha.
+
+    "- algo" pasa a "• algo" y "1. algo" a "1. algo" como párrafos normales (sin sangría).
+    """
+    lines: list[str] = []
+    for line in text.splitlines():
+        bullet = _BULLET.match(line)
+        numbered = _NUMBERED.match(line)
+        if (bullet or numbered) and lines and lines[-1]:
+            lines.append("")  # párrafo propio, si no se pegaría a la línea anterior
+        if bullet:
+            lines += ["• " + line[bullet.end() :], ""]
+        elif numbered:
+            lines += [f"{numbered.group(1)}\\. " + line[numbered.end() :], ""]
+        else:
+            lines.append(line)
+    return "\n".join(lines).strip()
+
+
 ERROR_COLOR = "#ff6b6b"
 
 
@@ -110,7 +139,7 @@ class AnswerCard(QFrame):
 
     def append_text(self, chunk: str) -> None:
         self._text += chunk
-        self.body.setText(self._text)
+        self._render_body()
         self.body.show()
         self.status.setText("Escribiendo…")
 
@@ -141,6 +170,8 @@ class AnswerCard(QFrame):
         self._compact = on
         self.setStyleSheet(PRESENTER_CARD_STYLE if on else CARD_STYLE)
         self._refresh_done_status()
+        if self._text and not self._error:
+            self._render_body()
         self.thumbnail.setVisible(not on)
         self.prompt.setVisible(not on)
         self._copy.setVisible(not on)
@@ -151,11 +182,15 @@ class AnswerCard(QFrame):
                 font.setPointSizeF(font_pt * scale)
             label.setFont(font)
 
+    def _render_body(self) -> None:
+        self.body.setText(compact_markdown(self._text) if self._compact else self._text)
+
     def set_latest(self, latest: bool) -> None:
         if self.property("latest") != latest:
             self.setProperty("latest", latest)
-            self.style().unpolish(self)
-            self.style().polish(self)
+            for widget in [self, *self.findChildren(QLabel)]:
+                widget.style().unpolish(widget)
+                widget.style().polish(widget)
 
     def copy_to_clipboard(self) -> None:
         QGuiApplication.clipboard().setText(self._text)
@@ -196,9 +231,57 @@ class AnswerPanel(QWidget):
         self._empty.setObjectName("status")
         self._list.addWidget(self._empty)
         self._list.addStretch(1)
+        self._alert = QLabel()
+        self._alert.setWordWrap(True)
+        self._alert.setStyleSheet(
+            "background: #8b1e1e; color: white; font-weight: bold; padding: 8px;border-radius: 6px;"
+        )
+        self._alert.hide()
+        self._alerts: dict[str, str] = {}
+        layout.addWidget(self._alert)
+
         self._scroll.setWidget(container)
         layout.addWidget(self._scroll)
+
+        self._health_label = QLabel()
+        self._health_label.setWordWrap(True)
+        self._health_label.setContentsMargins(8, 2, 8, 4)
+        self._health: dict[str, tuple[bool | None, str]] = {
+            name: (None, "comprobando…") for name in HEALTH_ORDER
+        }
+        layout.addWidget(self._health_label)
+        self._render_health()
         self._apply_panel_style()
+
+    # --- estado (puntos verde/rojo) y avisos importantes ---------------------------------
+    def set_health(self, name: str, ok: bool | None, detail: str = "") -> None:
+        self._health[name] = (ok, detail)
+        self._render_health()
+
+    def health(self, name: str) -> bool | None:
+        return self._health.get(name, (None, ""))[0]
+
+    def _render_health(self) -> None:
+        parts = []
+        tips = []
+        for name, (ok, detail) in self._health.items():
+            parts.append(f'<span style="color:{HEALTH_COLORS[ok]}">●</span> {name}')
+            tips.append(f"{name}: {detail}" if detail else name)
+        self._health_label.setText("&nbsp;&nbsp;".join(parts))
+        self._health_label.setToolTip("\n".join(tips))
+
+    def set_alert(self, key: str, text: str) -> None:
+        """Aviso en rojo arriba de la franja (texto vacío lo quita)."""
+        if text:
+            self._alerts[key] = text
+        else:
+            self._alerts.pop(key, None)
+        self._alert.setText("\n".join(self._alerts.values()))
+        self._alert.setVisible(bool(self._alerts))
+
+    @property
+    def alert_text(self) -> str:
+        return self._alert.text() if self._alerts else ""
 
     def set_hint(self, hint: str) -> None:
         self._empty.setText(hint)
@@ -218,11 +301,16 @@ class AnswerPanel(QWidget):
                 f"{{ background: {PRESENTER_BG}; }}"
             )
             self._empty.setStyleSheet(
-                f"color: #9aa0a6; padding: 24px; font-size: {max(12, self._font_pt - 6)}pt;"
+                f"color: #9aa0a6; padding: 12px; font-size: {max(12, self._font_pt - 6)}pt;"
+            )
+            self._health_label.setStyleSheet(
+                f"background: {PRESENTER_BG}; color: #9aa0a6; "
+                f"font-size: {max(10, self._font_pt // 2)}pt;"
             )
         else:
             self.setStyleSheet("")
             self._empty.setStyleSheet("color: palette(placeholder-text); padding: 24px;")
+            self._health_label.setStyleSheet("color: palette(placeholder-text);")
 
     def scroll_page(self) -> int:
         """Baja una página; si ya está abajo del todo, vuelve arriba. Devuelve la posición."""

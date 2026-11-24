@@ -35,8 +35,14 @@ class FrameSource(QObject):
         return None
 
     def measured_fps(self) -> float | None:
-        """Frames por segundo que llegan de verdad (diagnóstico), o None si no aplica."""
+        """Frames por segundo que llegan de verdad, o None si no aplica (imagen fija).
+
+        0 significa que no está llegando imagen: la app lo avisa e intenta reconectar.
+        """
         return None
+
+    def set_preview_enabled(self, enabled: bool) -> None:
+        """Pintar o no la vista previa. Sin ella, los frames siguen llegando para capturarlos."""
 
 
 class FpsMeter:

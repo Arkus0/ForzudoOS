@@ -35,7 +35,8 @@ def test_partial_file_uses_defaults(tmp_path: Path) -> None:
     assert config.gemini.model == "otro-modelo"
     assert config.capture.width == 1920
     assert len(config.presets) == 3
-    assert config.presenter.side == "right"
+    assert config.presenter.side == "left"
+    assert not config.presenter.show_video
 
 
 def test_custom_presets_and_history_folder(tmp_path: Path) -> None:
@@ -66,7 +67,8 @@ def test_custom_presets_and_history_folder(tmp_path: Path) -> None:
         ('[history]\nenabled = "si"\n', "enabled"),
         ("esto no es toml", "sintaxis"),
         ('[presenter]\nside = "arriba"\n', "side"),
-        ("[presenter]\nmin_strip_width = 10\n", "min_strip_width"),
+        ("[presenter]\nstrip_width = 10\n", "strip_width"),
+        ('[presenter]\nshow_video = "no"\n', "show_video"),
         ("[presenter]\nfont_size = 0\n", "font_size"),
         ("[presenter]\nscreen = -1\n", "screen"),
         ('[presenter]\nstart = "si"\n', "start"),
@@ -107,17 +109,24 @@ def test_config_path_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Non
 def test_presenter_section(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
     path.write_text(
-        '[presenter]\nstart = true\nscreen = 1\nside = "LEFT"\nmin_strip_width = 500\n'
-        'font_size = 28\ntoggle_hotkey = "<F11>"\nscroll_hotkey = ""\n',
+        '[presenter]\nstart = true\nscreen = 1\nside = "RIGHT"\nstrip_width = 500\n'
+        'font_size = 28\nshow_video = true\ntoggle_hotkey = "<F11>"\nscroll_hotkey = ""\n',
         encoding="utf-8",
     )
     presenter = load_config(path).presenter
     assert presenter == PresenterConfig(
         start=True,
         screen=1,
-        side="left",
-        min_strip_width=500,
+        side="right",
+        strip_width=500,
         font_size=28,
+        show_video=True,
         toggle_hotkey="<f11>",
         scroll_hotkey="",
     )
+
+
+def test_old_min_strip_width_name_still_works(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text("[presenter]\nmin_strip_width = 420\n", encoding="utf-8")
+    assert load_config(path).presenter.strip_width == 420

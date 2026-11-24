@@ -14,6 +14,7 @@ from PySide6.QtMultimedia import (
     QMediaCaptureSession,
     QMediaDevices,
     QVideoFrameFormat,
+    QVideoSink,
 )
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QWidget
@@ -67,6 +68,11 @@ class QtCameraSource(FrameSource):
         self._camera: QCamera | None = None
         self._fps = FpsMeter()
         self._widget.videoSink().videoFrameChanged.connect(self._on_frame)
+        # Sin vista previa (modo atril) los frames van a un sink "desnudo": siguen llegando
+        # para poder capturarlos, pero no se pintan (ahorra GPU).
+        self._bare_sink = QVideoSink()
+        self._bare_sink.videoFrameChanged.connect(self._on_frame)
+        self._preview = True
 
     def preview_widget(self) -> QWidget:
         return self._widget
@@ -129,15 +135,27 @@ class QtCameraSource(FrameSource):
     def _on_frame(self, _frame: object) -> None:
         self._fps.tick()
 
+    def _sink(self) -> QVideoSink:
+        return self._widget.videoSink() if self._preview else self._bare_sink
+
+    def set_preview_enabled(self, enabled: bool) -> None:
+        if enabled == self._preview:
+            return
+        self._preview = enabled
+        if enabled:
+            self._session.setVideoOutput(self._widget)
+        else:
+            self._session.setVideoSink(self._bare_sink)
+
     def measured_fps(self) -> float | None:
-        return self._fps.fps() if self._camera is not None else None
+        return self._fps.fps()
 
     def frame_size(self) -> QSize | None:
-        size = self._widget.videoSink().videoSize()
+        size = self._sink().videoSize()
         return size if size.isValid() and not size.isEmpty() else None
 
     def grab_frame(self) -> QImage | None:
-        frame = self._widget.videoSink().videoFrame()
+        frame = self._sink().videoFrame()
         if not frame.isValid():
             return None
         image = frame.toImage()

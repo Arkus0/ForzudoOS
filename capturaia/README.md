@@ -47,7 +47,7 @@ de capturadoras solo se dejan abrir por un programa a la vez.
 | «Explícame esto» | **F8** (o botón «Preguntar») |
 | «Pon un ejemplo» | **F9** |
 | «Datos clave» | **F7** |
-| Entrar/salir del modo presentación | **F12** (dentro del modo, también **Esc**) |
+| Entrar/salir del modo atril (pantalla completa) | **F12** (dentro del modo, también **Esc**) |
 | Pasar página en la franja de respuestas | **F10** (al final vuelve arriba) |
 | Pregunta libre | Escríbela en la barra y pulsa Enter |
 | Elegir capturadora | Desplegable «Fuente» (recuerda la última) |
@@ -65,37 +65,36 @@ van a `%APPDATA%\capturaia\capturas`. Se puede desactivar en `[history]`.
 Para probar sin capturadora: `uv run capturaia --demo`, que usa una imagen de prueba.
 `uv run capturaia --demo foto.png` usa la imagen que le pases.
 
-## Grabar cursos: modo presentación
+## Grabar cursos: modo atril
 
-Para dar un curso mirando el **monitor del PC2** mientras manejas el **portátil (PC1)** con su
-propio ratón. La imagen del PC1 ocupa toda la pantalla menos una franja lateral con las
-respuestas, y la franja nunca tapa la imagen.
+Pensado para dar un curso grabándote sin cortes, con ayuda de Gemini, y sin que nada de eso
+salga en el vídeo:
 
-En la grabación del PC1 no aparece nada de esto: CapturaIA vive en otro ordenador.
+- **Trabajas en tu monitor de siempre** (la ASUS), conectado directamente al portátil: sin
+  retraso, a tamaño completo, con la cámara encima. Ahí clicas, pones vídeos y presentas.
+- **El monitor del PC2** (el Philips), justo al lado, enseña solo una **franja fina** con las
+  respuestas, pegada al borde que toca la ASUS. El resto queda en negro. Basta un vistazo corto.
+- Si el PC2, la capturadora o Gemini fallan a mitad de curso, **la grabación sigue igual**:
+  solo pierdes la ayuda en ese momento.
 
-Monitor 21:9 (2560×1080): la imagen del PC1 a tamaño completo y la franja en el hueco sobrante.
-
-![Modo presentación en monitor 21:9](docs/presentacion-2560x1080.png)
-
-Monitor 16:9 (1920×1080): la imagen se reduce lo justo para dejar la franja (380 px por defecto).
-
-![Modo presentación en monitor 16:9](docs/presentacion-1920x1080.png)
+![ASUS directa y Philips con la franja de respuestas](docs/atril.png)
 
 ### Montaje
 
 ```
-Portátil ──HDMI──▶ splitter (EDID COPY, con cargador) ──OUT1──▶ monitor
-                                                      └─OUT2──▶ Cam Link 4K ──USB 3──▶ PC2 ──▶ monitor 2
+Portátil ──HDMI──▶ splitter (EDID COPY, con cargador) ──OUT1──▶ ASUS (trabajas aquí, cámara encima)
+                                                      └─OUT2──▶ Cam Link 4K ──USB 3──▶ PC2 ──▶ Philips (franja)
 ```
 
-- **La imagen va solo por cable.** El portátil manda la señal por su HDMI. El splitter la
-  copia, la capturadora la convierte a USB y el PC2 la recibe. No hay red de por medio: no se
+- **La imagen va solo por cable.** El portátil manda la señal por su HDMI y el splitter la
+  copia. La capturadora la convierte a USB y el PC2 la recibe. No hay red de por medio: no se
   instala nada en el portátil y el PC2 no puede leer nada de él, solo recibe la imagen.
-- **Win+P ▸ «Duplicar»** (solo si usas la pantalla del portátil a la vez) hace que la pantalla
-  del portátil y la salida HDMI muestren lo mismo. Va por el cable HDMI, no por wifi.
-  - No confundir con «Conectar a una pantalla inalámbrica» del mismo menú: esa sí iría por wifi,
-    y aquí **no se usa**.
-  - Con la tapa cerrada, o usando solo el monitor externo, no hace falta tocar nada.
+- **Lo que ves en la ASUS es exactamente lo que recibe la capturadora.** Si trabajas solo con
+  la ASUS (tapa cerrada o sin usar la pantalla del portátil), no hay que tocar nada en Windows.
+  - Win+P ▸ «Duplicar» solo haría falta si usaras a la vez la pantalla del portátil, y también
+    va por cable.
+  - La opción «Conectar a una pantalla inalámbrica» del mismo menú sí iría por wifi, y aquí
+    **no se usa**.
 - **Lo único que sale a internet** es lo que el PC2 envía a Gemini cuando pulsas una tecla: la
   captura de ese momento y la pregunta. Antes de usarlo:
   - Comprueba que la política de tu organismo permite enviar a un servicio externo el
@@ -106,33 +105,50 @@ Portátil ──HDMI──▶ splitter (EDID COPY, con cargador) ──OUT1─�
 
 ### Puesta en marcha
 
-1. En `config.toml`, sección `[presenter]`:
-   - `screen = 2` para el monitor del PC2 donde quieres verlo (1, 2, 3…).
-   - `start = true` si quieres que arranque ya en este modo. También vale
-     `uv run capturaia --presentar`.
-2. Coloca el monitor 2 **justo detrás o debajo de la cámara** con la que te grabas. Así, al
-   leer la franja, la mirada parece natural.
-3. Para disparar sin soltar el ratón del PC1, conecta al PC2 un **pedal USB** o un teclado
-   numérico pequeño y asígnale las teclas (F7–F10, F12, o F13–F24 si el pedal lo permite).
-   Un pedal además no se oye en la grabación.
+1. Arranca CapturaIA en el PC2 y elige la Cam Link en «Fuente». La app la recuerda.
+2. Arrastra la ventana al Philips y pulsa **F12**: pasa a pantalla completa en negro, con la
+   franja a la izquierda. Si tu Philips estuviera a la izquierda de la ASUS, pon
+   `side = "right"` en `[presenter]`.
+3. Para arrancar siempre así, pon `start = true` en `[presenter]` o usa
+   `uv run capturaia --presentar`.
+4. Ajusta en `[presenter]`:
+   - `strip_width`: ancho de la franja (340 px por defecto).
+   - `font_size`: tamaño de letra (20 por defecto).
+5. Para disparar sin soltar el ratón del portátil, conecta al PC2 un **pedal USB** o un teclado
+   numérico pequeño y asígnale las teclas (F7–F10, F12, o F13–F24 si el pedal lo permite). Un
+   pedal además no se oye en la grabación.
+6. Las respuestas están pensadas para leerse de reojo: como mucho unas 5 viñetas cortas con la
+   palabra clave en negrita. Gemini tarda unos segundos, así que ten preparada una frase puente
+   («Esto es importante, fijaos bien…»).
 
-### Retraso de la imagen (importante si mueves el ratón mirando el monitor 2)
+### Antes de grabar: los tres puntos verdes
 
-La imagen que ves en el monitor 2 lleva un pequeño retraso respecto al portátil. Para
-diapositivas y señalar con el ratón suele ser cómodo, pero mídelo en tu equipo:
+Abajo de la franja hay tres indicadores:
 
-1. En el portátil, abre en el navegador un cronómetro con milisegundos.
-2. Haz una foto con el móvil en la que salgan a la vez el monitor del splitter (OUT1) y el
-   monitor 2.
-3. La diferencia entre los dos números es el retraso.
+| Indicador | Verde | Rojo |
+|---|---|---|
+| **Señal** | Llega imagen de la capturadora | No llega: aviso en rojo arriba y reconexión automática cada pocos segundos |
+| **Gemini** | Clave y modelo comprobados al arrancar | Falta la clave, no es válida o no hay conexión (el motivo sale arriba en rojo) |
+| **Teclas** | Teclas globales activas | Alguna tecla no vale o está repetida |
 
-Para que sea el mínimo posible:
-- La barra de estado de CapturaIA (fuera del modo presentación) debe decir algo como
-  `1920x1080 @ 60 fps (NV12) · recibiendo 59.9 fps`.
-  - Si pone 30 fps o `Jpeg`, la Cam Link no está en un USB 3 (azul o USB-C).
-- Activa el «modo juego» o de baja latencia del monitor 2 si lo tiene.
-- Deja la imagen del portátil a 1920×1080 a 60 Hz. Más resolución no aporta nada a la
-  capturadora y puede añadir retraso.
+**Graba solo con los tres en verde.** Si se pierde la señal, la app no envía nada a Gemini
+(vería una imagen antigua) y te lo dice en la franja.
+
+### Alternativa: ver también la imagen del portátil en el Philips
+
+Con `show_video = true` en `[presenter]`, el Philips muestra además la imagen del portátil, con
+la franja al lado. Sirve para mirar el Philips en vez de la ASUS. Ten en cuenta que:
+- La imagen sale algo más pequeña en un monitor 16:9 y con un pequeño retraso.
+- Dependes de que el PC2 no falle.
+
+Para cursos en los que tienes que clicar con precisión, es mejor el modo atril.
+
+<details><summary>Cómo queda con imagen (16:9 y 21:9)</summary>
+
+![Con imagen en monitor 21:9](docs/presentacion-2560x1080.png)
+![Con imagen en monitor 16:9](docs/presentacion-1920x1080.png)
+
+</details>
 
 ## Configuración
 
