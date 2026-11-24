@@ -1,0 +1,72 @@
+# Configuración de CapturaIA
+# Tras editar este archivo, reinicia la app para aplicar los cambios.
+
+[gemini]
+# Déjalo vacío para usar la variable de entorno GEMINI_API_KEY (recomendado).
+# Consigue una clave gratis en https://aistudio.google.com/apikey
+api_key = ""
+
+# Modelo de Gemini. Alternativas: "gemini-flash-latest" (siempre el Flash más reciente),
+# "gemini-3.5-flash-lite" (más rápido y barato).
+model = "gemini-3.8-flash"
+
+# Cuánto "piensa" el modelo antes de responder: minimal, low, medium, high.
+# Más alto = mejor razonamiento pero más lento. Vacío = lo que decida el modelo.
+thinking_level = "low"
+
+# Detalle con el que Gemini mira la imagen: low, medium, high, ultra_high.
+# "high" va bien para leer textos pequeños de la pantalla. Vacío = por defecto.
+media_resolution = "high"
+
+system_instruction = """
+Eres un asistente que analiza capturas de pantalla de otro ordenador.
+Responde siempre en español, de forma breve y directa, usando viñetas cuando ayude.
+Si algo no se ve bien en la imagen, dilo en lugar de inventarlo.
+"""
+
+[capture]
+# "qt" (recomendado), "opencv" (alternativa si la capturadora da problemas con "qt"; requiere
+# instalar con el extra opencv) o "image" (imagen fija de disco, para pruebas sin capturadora).
+backend = "qt"
+
+# Nombre (o parte del nombre) de la capturadora, p. ej. "Elgato" o "USB Video".
+# Vacío = el dispositivo de vídeo por defecto. Con backend "opencv" es el índice: "0", "1"...
+# Para ver los nombres disponibles: capturaia --list-devices
+device = ""
+
+# Formato que se pide a la capturadora (se elige el más parecido que ofrezca).
+width = 1920
+height = 1080
+fps = 60
+
+# Solo backend "opencv": código FOURCC a forzar, p. ej. "MJPG" o "YUY2". Vacío = el de la tarjeta.
+fourcc = ""
+
+# Solo backend "image": ruta de la imagen. Vacío = imagen de prueba generada.
+image_path = ""
+
+# Imagen que se envía a Gemini.
+jpeg_quality = 90
+# Ancho máximo en píxeles (0 = sin reescalar). 1920 conserva el detalle de un 1080p.
+max_width = 1920
+
+[history]
+# Guarda cada captura (.jpg) con su pregunta y respuesta (.md).
+enabled = true
+# Vacío = carpeta "capturas" junto a este archivo.
+folder = ""
+
+# Preguntas prefijadas. Cada una con su tecla global (funciona aunque la app no tenga el foco).
+# Formato de teclas: "<f8>", "<ctrl>+<alt>+g", "<shift>+<f9>"...
+# Truco: F13-F24 no existen en los teclados normales pero sí se pueden asignar en un
+# Stream Deck o macro pad, y así nunca chocan con otros programas.
+
+[[presets]]
+name = "Analiza"
+hotkey = "<f8>"
+prompt = "Describe lo que se ve en la pantalla y dime lo más importante."
+
+[[presets]]
+name = "¿Qué hago?"
+hotkey = "<f9>"
+prompt = "Según lo que ves, ¿qué debería hacer ahora? Dame como mucho 3 pasos concretos."
